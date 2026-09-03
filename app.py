@@ -1,3 +1,14 @@
+
+
+
+
+
+
+
+
+
+
+
 # import streamlit as st
 # import ccxt
 # import pandas as pd
@@ -8,7 +19,10 @@
 # import hashlib
 # import hmac
 # import secrets
+# import socket
 # import smtplib
+# import urllib.request
+# import urllib.error
 # from email.mime.text import MIMEText
 # from email.mime.multipart import MIMEMultipart
 # from datetime import datetime, date
@@ -34,39 +48,134 @@
 
 # st.markdown("""
 #     <style>
-#     .stApp { background-color: #0b0e11; color: #eaecef; }
-#     .crypto-card {
-#         background: #181a20; border: 1px solid #2b313a; border-radius: 12px;
-#         padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+#     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+#     html, body, [class*="css"] {
+#         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
 #     }
+
+#     .stApp {
+#         background:
+#             radial-gradient(circle at 12% 0%, rgba(252,213,53,0.06), transparent 32%),
+#             radial-gradient(circle at 88% 100%, rgba(14,203,129,0.05), transparent 38%),
+#             #0b0e11;
+#         color: #eaecef;
+#     }
+
+#     .block-container { padding-top: 1.6rem; padding-bottom: 3rem; }
+
+#     @keyframes fadeInUp {
+#         from { opacity: 0; transform: translateY(10px); }
+#         to { opacity: 1; transform: translateY(0); }
+#     }
+#     @keyframes softPulse {
+#         0% { box-shadow: 0 0 0 0 rgba(14,203,129,0.35); }
+#         70% { box-shadow: 0 0 0 8px rgba(14,203,129,0); }
+#         100% { box-shadow: 0 0 0 0 rgba(14,203,129,0); }
+#     }
+
+#     .crypto-card {
+#         background: linear-gradient(150deg, #181a20 0%, #121418 100%);
+#         border: 1px solid #2b313a;
+#         border-radius: 14px;
+#         padding: 20px;
+#         margin-bottom: 15px;
+#         box-shadow: 0 10px 26px rgba(0,0,0,0.28);
+#         animation: fadeInUp 0.35s ease both;
+#         transition: border-color 0.2s ease, transform 0.2s ease;
+#     }
+#     .crypto-card:hover { border-color: #3a4552; }
+
 #     .badge-live {
-#         background-color: rgba(14, 203, 129, 0.15); color: #0ecb81;
-#         padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold;
+#         background-color: rgba(14, 203, 129, 0.15);
+#         color: #0ecb81;
+#         padding: 4px 12px;
+#         border-radius: 20px;
+#         font-size: 12px;
+#         font-weight: 700;
 #         border: 1px solid #0ecb81;
+#         animation: softPulse 2.4s ease-in-out infinite;
 #     }
 #     .badge-signal {
-#         background-color: rgba(240, 185, 11, 0.15); color: #fcd535;
-#         padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold;
+#         background-color: rgba(240, 185, 11, 0.15);
+#         color: #fcd535;
+#         padding: 4px 12px;
+#         border-radius: 20px;
+#         font-size: 12px;
+#         font-weight: 700;
 #         border: 1px solid #fcd535;
 #     }
 #     .rule-tag {
-#         display:inline-block; background:#0ecb8122; border:1px solid #0ecb81; color:#0ecb81;
-#         padding:3px 10px; border-radius:6px; font-size:12px; margin-right:6px; margin-bottom:6px;
+#         display:inline-block;
+#         background:#0ecb8122;
+#         border:1px solid #0ecb81;
+#         color:#0ecb81;
+#         padding:4px 12px;
+#         border-radius:20px;
+#         font-size:12px;
+#         margin-right:6px;
+#         margin-bottom:6px;
+#         transition: background 0.15s ease;
 #     }
+#     .rule-tag:hover { background:#0ecb8140; }
+
 #     .sig-card {
-#         background: linear-gradient(180deg,#181a20 0%, #14161c 100%);
-#         border: 1px solid #2b313a; border-left: 4px solid #fcd535;
-#         border-radius: 12px; padding: 14px 18px; margin-bottom: 10px;
+#         background: linear-gradient(180deg,#181a20 0%, #131519 100%);
+#         border: 1px solid #2b313a;
+#         border-left: 4px solid #fcd535;
+#         border-radius: 14px;
+#         padding: 16px 20px;
+#         margin-bottom: 12px;
+#         animation: fadeInUp 0.3s ease both;
+#         transition: transform 0.15s ease, border-color 0.2s ease;
 #     }
+#     .sig-card:hover { transform: translateY(-2px); border-color: #3a4552; }
+
 #     .trade-card {
-#         background: linear-gradient(180deg,#181a20 0%, #14161c 100%);
-#         border: 1px solid #2b313a; border-left: 4px solid #0ecb81;
-#         border-radius: 12px; padding: 14px 18px; margin-bottom: 10px;
+#         background: linear-gradient(180deg,#181a20 0%, #131519 100%);
+#         border: 1px solid #2b313a;
+#         border-left: 4px solid #0ecb81;
+#         border-radius: 14px;
+#         padding: 16px 20px;
+#         margin-bottom: 12px;
+#         animation: fadeInUp 0.3s ease both;
+#         transition: transform 0.15s ease, border-color 0.2s ease;
 #     }
-#     .kv { display:inline-block; margin-right:18px; }
-#     .kv .k { color:#848e9c; font-size:11px; display:block; }
-#     .kv .v { font-size:15px; font-weight:bold; }
-#     .sym-title { color:#fcd535; font-size:18px; font-weight:bold; margin:0; }
+#     .trade-card:hover { transform: translateY(-2px); border-color: #3a4552; }
+
+#     .kv { display:inline-block; margin-right:20px; }
+#     .kv .k { color:#848e9c; font-size:11px; letter-spacing:.4px; display:block; margin-bottom:2px; }
+#     .kv .v { font-size:15px; font-weight:700; }
+#     .sym-title { color:#fcd535; font-size:19px; font-weight:800; margin:0; }
+
+#     .stButton > button {
+#         border-radius: 10px;
+#         min-height: 42px;
+#         font-weight: 700;
+#         border: 1px solid #303943;
+#         transition: all 0.15s ease;
+#     }
+#     .stButton > button:hover {
+#         border-color: #52606e;
+#         transform: translateY(-1px);
+#         box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+#     }
+#     .stButton > button:active { transform: translateY(0) scale(0.98); }
+
+#     div[data-baseweb="tab-list"] { gap: 6px; border-bottom: 1px solid #252c34; }
+#     button[data-baseweb="tab"] {
+#         background: #11161b;
+#         border-radius: 9px 9px 0 0;
+#         transition: background 0.15s ease;
+#     }
+#     button[data-baseweb="tab"][aria-selected="true"] { background: #1a2027; }
+
+#     [data-testid="stDataFrame"] { border: 1px solid #2b313a; border-radius: 12px; overflow: hidden; }
+
+#     section[data-testid="stSidebar"] {
+#         background: linear-gradient(180deg, #0c1015 0%, #090c10 100%);
+#         border-right: 1px solid #20262e;
+#     }
 #     </style>
 # """, unsafe_allow_html=True)
 
@@ -79,6 +188,7 @@
 # SECRET_ENV = "APEX_SECRET_KEY"       # live par ye env var set karo (sabse safe)
 # MIN_ACTION_GAP_SEC = 10              # do actions ke beech gap (rapid-fire / multi-tab race rokne ke liye)
 # STALE_LOCK_SEC = 25
+# UNIVERSE_CACHE_TTL = 180             # seconds — market/tickers data itni der cache rehta hai (chhote VPS ka RAM/CPU bachane ke liye)
 
 # # ==========================================
 # # ENCRYPTION (API keys / secrets at rest)
@@ -197,7 +307,7 @@
 #         "limits": {"campaign_days": 1, "daily_limit": 1, "trade_amount": 100.0},
 #         "filters": dict(DEFAULT_FILTERS),
 #         "runtime": dict(DEFAULT_RUNTIME),
-#         "email": {"enabled": True, "host": "smtp.gmail.com", "port": 587, "sender": "", "password": "", "receiver": ""},
+#         "email": {"enabled": True, "sender": "", "receiver": "", "brevo_api_key": ""},
 #         "active_trades": [], "trade_history": [], "signals_feed": [], "signal_history": [], "logs": []
 #     }
 
@@ -219,7 +329,11 @@
 #     rt = cfg.setdefault("runtime", dict(DEFAULT_RUNTIME))
 #     for k, v in DEFAULT_RUNTIME.items():
 #         rt.setdefault(k, v)
-#     cfg.setdefault("email", {"enabled": True, "host": "smtp.gmail.com", "port": 587, "sender": "", "password": "", "receiver": ""})
+#     email_cfg = cfg.setdefault("email", {"enabled": True, "sender": "", "receiver": "", "brevo_api_key": ""})
+#     email_cfg.setdefault("brevo_api_key", "")
+#     email_cfg.setdefault("sender", "")
+#     email_cfg.setdefault("receiver", "")
+#     email_cfg.setdefault("enabled", True)
 #     for b in USER_BUCKETS:
 #         cfg.setdefault(b, [])
 
@@ -350,22 +464,63 @@
 #         db.setdefault("logs", []).append(line)
 #     save_db(db)
 
+# # ------------------------------------------------------------------
+# # EMAIL — Brevo HTTPS API (SMTP ports 25/465/587 DigitalOcean par HAMESHA
+# # block rehte hain — ye unki apni official policy hai, spam rokne ke liye,
+# # aur kisi bhi SMTP provider ke liye lagu hoti hai, chahe wo Gmail ho ya
+# # koi aur). Isliye email ab HTTPS (port 443) ke zariye Brevo ki API se
+# # bheji jati hai — ye port kabhi block nahi hota (isi se bot Binance se
+# # baat karta hai). Poore app me email sirf isi function se jaati hai, is
+# # liye trade/signal ke waqt jahan pehle call hoti thi, wahi ab bhi hoti
+# # hai — koi aur jagah kuch badalna nahi pada.
+# # ------------------------------------------------------------------
+# _orig_getaddrinfo = socket.getaddrinfo
+
+# def _ipv4_only_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+#     return _orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+
+# BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
+
 # def send_email_alert(subject, body_html, email_cfg):
 #     if not email_cfg.get("enabled") or not email_cfg.get("sender") or not email_cfg.get("receiver"):
 #         return False
+#     api_key = dec_secret(email_cfg.get("brevo_api_key", ""))
+#     api_key = api_key.strip() if api_key else ""
+#     if not api_key:
+#         add_log("Email Error: Brevo API key set nahi hai — Limitation & Campaign me daalo.")
+#         return False
+#     payload = json.dumps({
+#         "sender": {"name": "Apex Trading Bot", "email": email_cfg["sender"]},
+#         "to": [{"email": email_cfg["receiver"]}],
+#         "subject": subject,
+#         "htmlContent": body_html
+#     }).encode("utf-8")
+#     req = urllib.request.Request(
+#         BREVO_API_URL, data=payload, method="POST",
+#         headers={"api-key": api_key, "Content-Type": "application/json", "Accept": "application/json"}
+#     )
+#     socket.getaddrinfo = _ipv4_only_getaddrinfo  # is call ke liye IPv4 force (safety, HTTPS ke liye bhi)
 #     try:
-#         msg = MIMEMultipart('alternative')
-#         msg['From'] = email_cfg["sender"]; msg['To'] = email_cfg["receiver"]; msg['Subject'] = subject
-#         msg.attach(MIMEText(body_html, 'html'))
-#         server = smtplib.SMTP(email_cfg["host"], int(email_cfg["port"]))
-#         server.starttls()
-#         server.login(email_cfg["sender"], dec_secret(email_cfg.get("password")))
-#         server.sendmail(email_cfg["sender"], email_cfg["receiver"], msg.as_string())
-#         server.quit()
-#         return True
+#         with urllib.request.urlopen(req, timeout=20) as resp:
+#             if 200 <= resp.status < 300:
+#                 return True
+#             add_log(f"Email Error: Brevo HTTP {resp.status}")
+#             return False
+#     except urllib.error.HTTPError as e:
+#         try:
+#             err_body = e.read().decode("utf-8", errors="ignore")
+#         except Exception:
+#             err_body = ""
+#         # Brevo error body me exact wajah hoti hai — jaise IP authorize nahi,
+#         # ya sender email verify nahi, ya key galat. Bot Logs me poora dikhega.
+#         add_log(f"Email Error: Brevo HTTP {e.code} - {err_body[:300]}")
+#         return False
 #     except Exception as e:
 #         add_log(f"Email Error: {str(e)}")
 #         return False
+#     finally:
+#         socket.getaddrinfo = _orig_getaddrinfo  # turant wapas normal
+
 
 # # ------------------------------------------------------------------
 # # COIN UNIVERSE FILTER
@@ -846,15 +1001,38 @@
 #         st.caption("Auto mode: bot exactly itni hi trades lega (2→2, 20→20), har coin sirf 1 baar, phir aaj ke liye ruk jayega. "
 #                    "Signal-Only mode: is limit se azaad — signal deta rahega.")
 #     with col2:
-#         email_cfg = user_settings.setdefault("email", {"enabled": True, "host": "smtp.gmail.com", "port": 587, "sender": "", "password": "", "receiver": ""})
+#         email_cfg = user_settings.setdefault("email", {"enabled": True, "sender": "", "receiver": "", "brevo_api_key": ""})
 #         e_en = st.checkbox("Enable Email Notifications", value=email_cfg.get("enabled", True))
-#         e_host = st.text_input("SMTP Host", value=email_cfg.get("host", "smtp.gmail.com"))
-#         e_port = st.number_input("SMTP Port", value=email_cfg.get("port", 587))
-#         e_sender = st.text_input("Sender Gmail", value=email_cfg.get("sender", ""))
-#         e_pass = st.text_input("Gmail App Password", type="password", value=dec_secret(email_cfg.get("password", "")))
-#         e_recv = st.text_input("Send Alerts To", value=email_cfg.get("receiver", ""))
-#         email_cfg.update({"enabled": e_en, "host": e_host, "port": e_port,
-#                           "sender": e_sender, "password": enc_secret(e_pass), "receiver": e_recv})
+#         e_sender = st.text_input("Sender Email (Brevo par verified hona chahiye)", value=email_cfg.get("sender", "")).strip()
+#         e_key_raw = st.text_input("Brevo API Key", type="password", value=dec_secret(email_cfg.get("brevo_api_key", "")))
+#         e_key = e_key_raw.strip()
+#         e_recv = st.text_input("Send Alerts To", value=email_cfg.get("receiver", "")).strip()
+#         email_cfg.update({"enabled": e_en, "sender": e_sender,
+#                           "brevo_api_key": enc_secret(e_key), "receiver": e_recv})
+
+#         st.caption("Tip: DigitalOcean jaise VPS par SMTP (Gmail) ports hamesha block hote hain, isliye email ab "
+#                    "**Brevo** (free, 300/din) ke zariye HTTPS se jati hai. brevo.com par free sign-up karo, apna "
+#                    "sender email verify karo, phir SMTP & API → API Keys se key banao. **Zaroori:** Brevo ke Security "
+#                    "settings me apne server ka IP (jo aapke droplet ka public IP hai) authorize/whitelist karna hoga, "
+#                    "warna API key kaam nahi karegi.")
+
+
+#         if st.button("📧 Send Test Email", use_container_width=True):
+#             with st.spinner("Test email bheja ja raha hai..."):
+#                 test_ok = send_email_alert(
+#                     "✅ Apex Trading — Test Email",
+#                     "<html><body style='font-family:Arial;background:#0b0e11;color:#eaecef;padding:20px;'>"
+#                     "<h2 style='color:#fcd535;'>Test email successful!</h2>"
+#                     "<p>Agar aapko ye email mila hai, matlab SMTP settings bilkul sahi hain.</p>"
+#                     "</body></html>",
+#                     email_cfg
+#                 )
+#             if test_ok:
+#                 st.success("✅ Test email bhej diya gaya! Apna inbox (aur Spam folder) check karo.")
+#             else:
+#                 st.error("❌ Test email fail hua. Exact error dekhne ke liye Dashboard → 📜 Bot Logs kholo — "
+#                          "wahan Gmail ka asli error message milega (jaise galat App Password, ya 2-Step Verification off).")
+
 #     if st.button("💾 Save Limits & Notifications", type="primary", use_container_width=True):
 #         save_db(db); st.success("✅ Saved successfully!")
 
@@ -905,10 +1083,13 @@
 #         c_m4.metric("Bot Status", "Running" if st.session_state.bot_running else "Stopped")
 
 #         _lim = int(user_settings["limits"].get("daily_limit", 1))
+#         # Display ko hamesha clamp karo — chahe kisi bhi wajah se number thoda idhar-udhar ho,
+#         # user ko kabhi limit se zyada "X/Y" ka number NAHI dikhna chahiye.
+#         _shown_trades = min(int(rt.get('trades_today', 0)), _lim)
 #         st.markdown(
 #             f"<div class='crypto-card'><b>Today's Auto Trades:</b> "
-#             f"<span style='color:#fcd535;'>{rt['trades_today']} / {_lim}</span> &nbsp; "
-#             f"({max(_lim - rt['trades_today'], 0)} remaining today) &nbsp;|&nbsp; "
+#             f"<span style='color:#fcd535;'>{_shown_trades} / {_lim}</span> &nbsp; "
+#             f"({max(_lim - _shown_trades, 0)} remaining today) &nbsp;|&nbsp; "
 #             f"<b>Signals Today:</b> <span style='color:#0ecb81;'>{rt['signals_today']}</span></div>",
 #             unsafe_allow_html=True)
 
@@ -1072,20 +1253,45 @@
 
 #         ex.load_markets()
 #         flt = user_settings.get("filters", DEFAULT_FILTERS)
-#         try:
-#             all_tickers = ex.fetch_tickers()
-#         except Exception:
-#             all_tickers = None
-#         universe = build_symbol_universe(ex, all_tickers,
-#                                          min_volume=int(flt.get("universe_min_volume", 1000000)),
-#                                          exclude_bases=flt.get("exclude", []))
-#         if not universe:
-#             excl = {e.upper() for e in flt.get("exclude", [])}
-#             universe = [s for s in ex.symbols
-#                         if s.endswith('/USDT') and s.split('/')[0].upper() not in STABLE_OR_FIAT
-#                         and s.split('/')[0].upper() not in excl][:40]
-#         if not universe:
-#             universe = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
+
+#         # ---- PERF/STABILITY FIX ----
+#         # Pehle har 15 second me Binance ke SAARE (2000+) coins ka poora ticker data
+#         # (fetch_tickers) dobara mangwaya jata tha — chhote VPS (1GB RAM) ke liye ye
+#         # bahut bhaari kaam hai aur crash/restart ki sabse badi wajah tha (jisse
+#         # session/login "khud logout" jaisa lagta tha). Ab ye data sirf har
+#         # UNIVERSE_CACHE_TTL second (3 minute) me ek baar refresh hota hai — baaki
+#         # waqt session me cache se use hota hai. Strategy/behaviour bilkul wahi
+#         # rehta hai, sirf resource-use kam ho jata hai.
+#         _now_ts = time.time()
+#         _cache_key = (curr_user, int(flt.get("universe_min_volume", 1000000)),
+#                       tuple(sorted(e.upper() for e in flt.get("exclude", []))))
+#         _cache_fresh = (
+#             st.session_state.get("_universe_cache_key") == _cache_key
+#             and (_now_ts - st.session_state.get("_universe_cache_ts", 0)) < UNIVERSE_CACHE_TTL
+#             and st.session_state.get("_universe_cache")
+#         )
+#         if _cache_fresh:
+#             universe = st.session_state["_universe_cache"]
+#             all_tickers = st.session_state.get("_tickers_cache")
+#         else:
+#             try:
+#                 all_tickers = ex.fetch_tickers()
+#             except Exception:
+#                 all_tickers = None
+#             universe = build_symbol_universe(ex, all_tickers,
+#                                              min_volume=int(flt.get("universe_min_volume", 1000000)),
+#                                              exclude_bases=flt.get("exclude", []))
+#             if not universe:
+#                 excl = {e.upper() for e in flt.get("exclude", [])}
+#                 universe = [s for s in ex.symbols
+#                             if s.endswith('/USDT') and s.split('/')[0].upper() not in STABLE_OR_FIAT
+#                             and s.split('/')[0].upper() not in excl][:40]
+#             if not universe:
+#                 universe = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
+#             st.session_state["_universe_cache"] = universe
+#             st.session_state["_tickers_cache"] = all_tickers
+#             st.session_state["_universe_cache_key"] = _cache_key
+#             st.session_state["_universe_cache_ts"] = _now_ts
 
 #         available = [c for c in universe if c not in rt["traded_coins_today"]]
 #         if not available:
@@ -1141,6 +1347,20 @@
 #         ok, reason, db = try_reserve_slot(curr_user, chosen_coin, daily_lim, is_signal_only)
 #         user_settings = db["settings"][curr_user]
 #         rt = get_runtime(user_settings)
+
+#         # ---- EXTRA SAFETY NET ----
+#         # Chahe kitni bhi tabs/process ya restart ho jaye, trades_today kabhi bhi
+#         # daily_lim se zyada NAHI hona chahiye. Agar phir bhi (kisi wajah se) ho
+#         # jaye, is reservation ko turant undo karo — order place hi NAHI hoga, aur
+#         # limit hamesha exactly wahi rahegi jo user ne set ki hai (2 -> 2, 50 -> 50).
+#         if ok and not is_signal_only and rt["trades_today"] > daily_lim:
+#             rt["trades_today"] = daily_lim
+#             if chosen_coin in rt["traded_coins_today"]:
+#                 rt["traded_coins_today"].remove(chosen_coin)
+#             save_db(db)
+#             add_log(f"🛡️ Safety rollback: {chosen_coin} reservation undo ki gayi (limit {daily_lim} already reached tha).")
+#             ok = False
+#             reason = "limit reached"
 
 #         if not ok:
 #             if reason == "limit reached":
@@ -1313,6 +1533,14 @@
 #     time.sleep(15)
 #     st.rerun()
 
+    
+
+
+
+
+
+
+
 
 
 
@@ -1461,6 +1689,7 @@ st.markdown("""
     }
     .trade-card:hover { transform: translateY(-2px); border-color: #3a4552; }
 
+    .kv-row { display:flex; flex-wrap:wrap; row-gap:10px; column-gap:22px; }
     .kv { display:inline-block; margin-right:20px; }
     .kv .k { color:#848e9c; font-size:11px; letter-spacing:.4px; display:block; margin-bottom:2px; }
     .kv .v { font-size:15px; font-weight:700; }
@@ -1493,6 +1722,36 @@ st.markdown("""
     section[data-testid="stSidebar"] {
         background: linear-gradient(180deg, #0c1015 0%, #090c10 100%);
         border-right: 1px solid #20262e;
+    }
+
+    /* ==========================================
+       MOBILE / SMALL-SCREEN RESPONSIVE TUNING
+       (sirf spacing/sizing — koi functionality nahi badli)
+       ========================================== */
+    @media (max-width: 900px) {
+        .block-container { padding-left: 1rem; padding-right: 1rem; padding-top: 1.1rem; padding-bottom: 2rem; }
+        .crypto-card, .sig-card, .trade-card { padding: 15px 16px; border-radius: 12px; margin-bottom: 12px; }
+        .sym-title { font-size: 16px; }
+        .kv { margin-right: 0; }
+        .kv .k { font-size: 10px; }
+        .kv .v { font-size: 13px; }
+        h1 { font-size: 21px !important; }
+        h2 { font-size: 18px !important; }
+        h3, .stMarkdown h3 { font-size: 16px !important; }
+        div[data-baseweb="tab-list"] { overflow-x: auto; flex-wrap: nowrap !important; -webkit-overflow-scrolling: touch; }
+        button[data-baseweb="tab"] { font-size: 12px; padding: 8px 10px !important; white-space: nowrap; }
+        div[role="radiogroup"] { flex-wrap: wrap !important; row-gap: 8px !important; column-gap: 8px !important; }
+        div[role="radiogroup"] label { font-size: 12.5px !important; padding: 3px 4px !important; }
+        .stButton > button { min-height: 44px; font-size: 13.5px; width: 100%; }
+        [data-testid="column"] { padding-left: 4px !important; padding-right: 4px !important; }
+        [data-testid="stMetricValue"] { font-size: 18px !important; }
+        [data-testid="stMetricLabel"] { font-size: 11px !important; }
+    }
+    @media (max-width: 480px) {
+        .crypto-card, .sig-card, .trade-card { padding: 13px 14px; }
+        .sym-title { font-size: 14.5px; }
+        .kv .v { font-size: 12.5px; }
+        .badge-live, .badge-signal { font-size: 10.5px; padding: 3px 9px; }
     }
     </style>
 """, unsafe_allow_html=True)
@@ -1918,16 +2177,39 @@ def calc_rsi(close_series, period=14):
     return 100 - (100 / (1 + rs))
 
 def check_ma_condition(df, periods):
-    if not periods: return False
-    if len(df) < max(periods) + 3: return False
+    """
+    Real trader jaisa MA bounce:
+    Signal candle MA ko TOUCH kare ya thoda break karke wapas MA ke qareeb/upar close kare
+    (rejection dikhna chahiye) -> phir Confirmation candle GREEN ho aur signal candle se
+    upar close kare (bounce confirm). Multiple MA diye ho to har MA par ye pattern hona
+    chahiye (AND logic) — sirf "close upar tha" ki jagah ab "MA pe react karke upar gaya".
+    """
+    if not periods:
+        return False
+    if len(df) < max(periods) + 5:
+        return False
     sig = df.iloc[-2]; conf = df.iloc[-1]
+
+    # confirmation candle hamesha green ho aur signal se upar close kare
+    if not is_green(conf):
+        return False
+    if float(conf['close']) <= float(sig['close']):
+        return False
+
     for p in periods:
         ma = df['close'].rolling(int(p)).mean()
-        ma_sig = ma.iloc[-2]; ma_conf = ma.iloc[-1]
-        if pd.isna(ma_sig) or pd.isna(ma_conf): return False
-        if float(sig['close']) < float(ma_sig): return False
-        if float(conf['close']) < float(ma_conf): return False
-    return is_green(sig) and is_green(conf)
+        ma_sig = ma.iloc[-2]
+        if pd.isna(ma_sig):
+            return False
+        sig_low = float(sig['low']); sig_high = float(sig['high']); sig_close = float(sig['close'])
+        # (a) MA signal candle ki wick range ke andar hai -> seedha touch
+        touched = sig_low <= ma_sig <= sig_high
+        # (b) ya candle MA se thoda neeche gayi thi (wick break) par close wapas MA ke
+        #     bahut qareeb / upar aa gaya -> rejection/reclaim
+        reclaimed = (sig_low < ma_sig) and (sig_close >= ma_sig * 0.998)
+        if not (touched or reclaimed):
+            return False
+    return True
 
 def check_rsi_condition(df, rsi_min, rsi_max, period=14):
     if len(df) < period + 3: return False
@@ -1940,9 +2222,15 @@ def check_rsi_condition(df, rsi_min, rsi_max, period=14):
     return in_range and momentum_up and is_green(conf)
 
 def check_support_condition(df, lookback, tolerance_pct):
+    """
+    Support zone = lookback ke 3 sabse neeche wale lows ka average (sirf ek akeli wick
+    par depend nahi — real support ek "zone" hota hai jahan price baar baar tiki ho).
+    Signal candle us zone ke qareeb aaye, phir confirmation candle green bounce de.
+    """
     recent = df.tail(int(lookback))
     if len(recent) < 6: return False
-    support = float(recent['low'].min())
+    n = min(3, len(recent))
+    support = float(recent['low'].nsmallest(n).mean())
     if support <= 0: return False
     sig = df.iloc[-2]; conf = df.iloc[-1]
     near_support = abs(float(sig['low']) - support) / support * 100 <= tolerance_pct
@@ -1950,18 +2238,32 @@ def check_support_condition(df, lookback, tolerance_pct):
     return near_support and bounce
 
 def check_order_block_condition(df, lookback, tolerance_pct=1.0):
+    """
+    Bullish Order Block: ek strong impulse (bade body + averagese zyada volume wali)
+    green candle dhoondo. Uske pichle 1-2 candles ka combined high/low hi asli "zone"
+    hai (real trader bhi sirf ek candle nahi, base banane wali 1-2 candles dekhta hai).
+    Price wapas us zone me aaye (tap) aur confirmation candle green reaction de.
+    """
     recent = df.tail(int(lookback)).reset_index(drop=True)
     if len(recent) < 25: return False
     body = (recent['close'] - recent['open']).abs()
     avg_body = body.rolling(20).mean()
+    avg_vol = recent['volume'].rolling(20).mean()
     ob_zone = None
     for i in range(20, len(recent)):
         is_bullish = recent['close'].iloc[i] > recent['open'].iloc[i]
         is_impulse = (not pd.isna(avg_body.iloc[i])) and body.iloc[i] > 1.8 * avg_body.iloc[i]
-        if is_bullish and is_impulse and i > 0:
-            prev = recent.iloc[i - 1]
-            if prev['close'] < prev['open']:
-                ob_zone = (float(prev['low']), float(prev['high']))
+        vol_ok = True
+        if not pd.isna(avg_vol.iloc[i]):
+            vol_ok = float(recent['volume'].iloc[i]) >= float(avg_vol.iloc[i])
+        if is_bullish and is_impulse and vol_ok and i > 0:
+            prev1 = recent.iloc[i - 1]
+            prev2 = recent.iloc[i - 2] if i >= 2 else prev1
+            base_is_down = (prev1['close'] < prev1['open']) or (prev2['close'] < prev2['open'])
+            if base_is_down:
+                zone_low = min(float(prev1['low']), float(prev2['low']))
+                zone_high = max(float(prev1['high']), float(prev2['high']))
+                ob_zone = (zone_low, zone_high)
     if ob_zone is None: return False
     zone_low, zone_high = ob_zone
     zone_high_padded = zone_high * (1 + tolerance_pct / 100)
@@ -2199,7 +2501,7 @@ elif config_menu == "⚙️ Strategy Studio":
                 manual_cfg["ma_periods"] = [int(x.strip()) for x in ma_str.split(",") if x.strip()]
             except Exception:
                 manual_cfg["ma_periods"] = []
-            st.caption("Rule: signal candle green + har MA ke upar, phir confirmation candle bhi green + upar.")
+            st.caption("Rule: signal candle MA ko touch/react kare (bounce/reclaim), phir confirmation candle green + upar close kare.")
             st.markdown("</div>", unsafe_allow_html=True)
 
             st.markdown("<div class='crypto-card'>", unsafe_allow_html=True)
@@ -2214,14 +2516,14 @@ elif config_menu == "⚙️ Strategy Studio":
             manual_cfg["sr_enabled"] = st.checkbox("🧱 Enable Support Bounce Filter", value=manual_cfg.get("sr_enabled", False))
             manual_cfg["sr_lookback"] = st.number_input("Support Lookback Candles", 10, 500, value=int(manual_cfg.get("sr_lookback", 50)), disabled=not manual_cfg["sr_enabled"])
             manual_cfg["sr_tolerance_pct"] = st.number_input("Max Distance From Support (%)", 0.1, 10.0, value=float(manual_cfg.get("sr_tolerance_pct", 1.0)), disabled=not manual_cfg["sr_enabled"])
-            st.caption("Rule: price support ke paas aaye + green bounce candle confirm kare.")
+            st.caption("Rule: price support ZONE (3 lowest lows ka average) ke paas aaye + green bounce candle confirm kare.")
             st.markdown("</div>", unsafe_allow_html=True)
 
         with c2:
             st.markdown("<div class='crypto-card'>", unsafe_allow_html=True)
             manual_cfg["ob_enabled"] = st.checkbox("🟩 Enable Order Block (Bullish) Filter", value=manual_cfg.get("ob_enabled", False))
             manual_cfg["ob_lookback"] = st.number_input("Order Block Lookback Candles", 20, 500, value=int(manual_cfg.get("ob_lookback", 50)), disabled=not manual_cfg["ob_enabled"])
-            st.caption("Rule: OB zone touch + green reaction candle confirm kare.")
+            st.caption("Rule: volume-confirmed impulse + pichli 1-2 candles ka zone touch + green reaction candle confirm kare.")
             st.markdown("</div>", unsafe_allow_html=True)
 
             st.markdown("<div class='crypto-card'>", unsafe_allow_html=True)
@@ -2361,7 +2663,7 @@ else:
     rt = get_runtime(user_settings)
     save_db(db)
     st.markdown(f"""
-        <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;'>
+        <div style='display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; margin-bottom: 5px;'>
             <div>
                 <h1 style='margin: 0; font-size: 26px;'>⚡ Apex Trading Dashboard</h1>
                 <p style='margin: 4px 0 0 0; color: #848e9c; font-size: 13px;'>Rule-Based Strategy Engine + optional AI Prompt mode.</p>
@@ -2446,11 +2748,11 @@ else:
                     rules_html = f"<br><span style='color:#848e9c;font-size:12px;'>Rules:</span> <b style='font-size:12px;'>{trade.get('Rules','—')}</b>" if trade.get("Rules") else ""
                     st.markdown(f"""
                     <div class='trade-card'>
-                        <div style='display:flex; justify-content:space-between; align-items:center;'>
+                        <div style='display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center;'>
                             <span class='sym-title'>{trade['Symbol']} <span style='color:#848e9c;font-size:12px;'>({trade['Market']})</span></span>
                             <span class='badge-live'>🟢 LIVE</span>
                         </div>
-                        <div style='margin-top:10px;'>
+                        <div class='kv-row' style='margin-top:10px;'>
                             <span class='kv'><span class='k'>Entry</span><span class='v' style='color:#3b82f6;'>${trade['Entry']}</span></span>
                             <span class='kv'><span class='k'>Allocated</span><span class='v'>{trade['Amount']}</span></span>
                             <span class='kv'><span class='k'>Take Profit</span><span class='v' style='color:#0ecb81;'>${trade['TP']}</span></span>
@@ -2493,11 +2795,11 @@ else:
                 with cc1:
                     st.markdown(f"""
                     <div class='sig-card'>
-                        <div style='display:flex; justify-content:space-between; align-items:center;'>
+                        <div style='display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center;'>
                             <span class='sym-title'>{sig['symbol']}</span>
                             <span class='{badge}'>{badge_txt}</span>
                         </div>
-                        <div style='margin-top:10px;'>
+                        <div class='kv-row' style='margin-top:10px;'>
                             <span class='kv'><span class='k'>Entry</span><span class='v' style='color:#3b82f6;'>{sig.get('entry',0):,.6f}</span></span>
                             <span class='kv'><span class='k'>Take Profit</span><span class='v' style='color:#0ecb81;'>{sig.get('tp',0):,.6f}</span></span>
                             <span class='kv'><span class='k'>Stop Loss</span><span class='v' style='color:#f6465d;'>{sig.get('sl',0):,.6f}</span></span>
@@ -2851,8 +3153,23 @@ if st.session_state.bot_running:
     time.sleep(15)
     st.rerun()
 
-    
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
 
 # import streamlit as st
 # import ccxt
