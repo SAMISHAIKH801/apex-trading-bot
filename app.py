@@ -1753,6 +1753,82 @@ st.markdown("""
         .kv .v { font-size: 12.5px; }
         .badge-live, .badge-signal { font-size: 10.5px; padding: 3px 9px; }
     }
+
+    /* ==========================================
+       GLOBAL RADIO -> PILL / NAV STYLE
+       (Streamlit ke default radio circles hata kar clean
+       clickable nav-items / pills banate hain — sidebar
+       menu, dashboard tabs, exec-mode, market-type sab par)
+       ========================================== */
+    div[role="radiogroup"] { row-gap: 8px; }
+    div[role="radiogroup"] > label {
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    }
+    div[role="radiogroup"] > label > div:first-child { display: none !important; }
+
+    /* Horizontal pill-style groups (dashboard tabs, exec mode, market type, login sub-tabs) */
+    div[data-testid="stRadio"] div[role="radiogroup"][aria-orientation="horizontal"] > label {
+        background: #12161b;
+        border: 1px solid #232a33;
+        border-radius: 20px;
+        padding: 7px 16px !important;
+        margin: 0 6px 6px 0 !important;
+    }
+    div[data-testid="stRadio"] div[role="radiogroup"][aria-orientation="horizontal"] > label:hover {
+        border-color: #52606e;
+    }
+    div[data-testid="stRadio"] div[role="radiogroup"][aria-orientation="horizontal"] > label:has(input:checked) {
+        background: linear-gradient(90deg, rgba(14,203,129,0.18), rgba(14,203,129,0.05));
+        border-color: #0ecb81;
+    }
+    div[data-testid="stRadio"] div[role="radiogroup"][aria-orientation="horizontal"] > label:has(input:checked) p {
+        color: #0ecb81 !important;
+        font-weight: 700 !important;
+    }
+
+    /* Sidebar main navigation — vertical list, distinct highlighted "active page" look */
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] > label {
+        background: #12161b;
+        border: 1px solid #222831;
+        border-radius: 10px;
+        padding: 11px 14px !important;
+        margin: 0 !important;
+        width: 100%;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] > label:hover {
+        background: #171d25;
+        border-color: #3a4552;
+        transform: translateX(2px);
+    }
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) {
+        background: linear-gradient(90deg, rgba(252,213,53,0.16), rgba(252,213,53,0.03));
+        border-color: #fcd535;
+        border-left: 3px solid #fcd535;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) p {
+        color: #fcd535 !important;
+        font-weight: 700 !important;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] > label p {
+        font-size: 14px;
+        margin: 0 !important;
+    }
+
+    /* Sidebar section captions (NAVIGATION / etc.) */
+    .apex-side-caption {
+        color: #5b6672; font-size: 10.5px; font-weight: 700; letter-spacing: 1px;
+        margin: 2px 0 8px 2px; text-transform: uppercase;
+    }
+
+    /* Consistent vertical rhythm across cards/sections everywhere */
+    .crypto-card, .sig-card, .trade-card { line-height: 1.5; }
+    .stApp [data-testid="stVerticalBlock"] > div:has(> .crypto-card) { margin-bottom: 2px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -2411,6 +2487,7 @@ if st.sidebar.button("🚪 Logout", use_container_width=True):
     st.session_state.bot_running = False
     st.rerun()
 st.sidebar.markdown("---")
+st.sidebar.markdown("<div class='apex-side-caption'>Navigation</div>", unsafe_allow_html=True)
 config_menu = st.sidebar.radio(
     "Configs",
     ["📊 Dashboard", "🔌 Exchange Integration", "⚙️ Strategy Studio", "📦 Limitation & Campaign"],
@@ -3169,7 +3246,7 @@ if st.session_state.bot_running:
 
 
 
-
+    
 
 # import streamlit as st
 # import ccxt
