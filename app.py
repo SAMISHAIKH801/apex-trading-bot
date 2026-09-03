@@ -3169,7 +3169,7 @@ if st.session_state.bot_running:
 
 
 
-    
+
 
 # import streamlit as st
 # import ccxt
