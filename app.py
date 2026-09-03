@@ -1327,8 +1327,6 @@
 
 
 
-
-
 import streamlit as st
 import ccxt
 import pandas as pd
@@ -1804,7 +1802,12 @@ def send_email_alert(subject, body_html, email_cfg):
         msg.attach(MIMEText(body_html, 'html'))
         server = smtplib.SMTP(email_cfg["host"], int(email_cfg["port"]), timeout=20)
         server.starttls()
-        server.login(email_cfg["sender"], dec_secret(email_cfg.get("password")))
+        # Google App Password dikhata to spaces ke sath hai (jaise "abcd efgh ijkl mnop")
+        # par asli credential me koi space nahi hota. Agar spaces galti se save ho gaye
+        # hon (purani entry), yahan bhi turant saaf kar dete hain taake login fail na ho.
+        pwd = dec_secret(email_cfg.get("password"))
+        pwd = "".join(pwd.split()) if pwd else pwd
+        server.login(email_cfg["sender"], pwd)
         server.sendmail(email_cfg["sender"], email_cfg["receiver"], msg.as_string())
         server.quit()
         return True
@@ -2297,9 +2300,13 @@ elif config_menu == "📦 Limitation & Campaign":
         e_en = st.checkbox("Enable Email Notifications", value=email_cfg.get("enabled", True))
         e_host = st.text_input("SMTP Host", value=email_cfg.get("host", "smtp.gmail.com"))
         e_port = st.number_input("SMTP Port", value=email_cfg.get("port", 587))
-        e_sender = st.text_input("Sender Gmail", value=email_cfg.get("sender", ""))
-        e_pass = st.text_input("Gmail App Password", type="password", value=dec_secret(email_cfg.get("password", "")))
-        e_recv = st.text_input("Send Alerts To", value=email_cfg.get("receiver", ""))
+        e_sender = st.text_input("Sender Gmail", value=email_cfg.get("sender", "")).strip()
+        e_pass_raw = st.text_input("Gmail App Password", type="password", value=dec_secret(email_cfg.get("password", "")))
+        # Google App Password ko spaces ke sath dikhata hai (sirf padhne ke liye) —
+        # asli credential me space nahi hota. Yahan khud spaces hata dete hain taake
+        # aap jaise bhi paste karo (spaces ke sath ya bina), save hamesha sahi ho.
+        e_pass = "".join(e_pass_raw.split())
+        e_recv = st.text_input("Send Alerts To", value=email_cfg.get("receiver", "")).strip()
         email_cfg.update({"enabled": e_en, "host": e_host, "port": e_port,
                           "sender": e_sender, "password": enc_secret(e_pass), "receiver": e_recv})
 
@@ -2821,7 +2828,6 @@ if st.session_state.bot_running:
 
     time.sleep(15)
     st.rerun()
-
 
     
 
