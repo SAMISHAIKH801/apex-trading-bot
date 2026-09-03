@@ -1339,6 +1339,8 @@ import hmac
 import secrets
 import socket
 import smtplib
+import urllib.request
+import urllib.error
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, date
@@ -1623,7 +1625,7 @@ def _blank_user_settings():
         "limits": {"campaign_days": 1, "daily_limit": 1, "trade_amount": 100.0},
         "filters": dict(DEFAULT_FILTERS),
         "runtime": dict(DEFAULT_RUNTIME),
-        "email": {"enabled": True, "host": "smtp.gmail.com", "port": 587, "sender": "", "password": "", "receiver": ""},
+        "email": {"enabled": True, "sender": "", "receiver": "", "brevo_api_key": ""},
         "active_trades": [], "trade_history": [], "signals_feed": [], "signal_history": [], "logs": []
     }
 
@@ -1645,7 +1647,11 @@ def _backfill_user(cfg):
     rt = cfg.setdefault("runtime", dict(DEFAULT_RUNTIME))
     for k, v in DEFAULT_RUNTIME.items():
         rt.setdefault(k, v)
-    cfg.setdefault("email", {"enabled": True, "host": "smtp.gmail.com", "port": 587, "sender": "", "password": "", "receiver": ""})
+    email_cfg = cfg.setdefault("email", {"enabled": True, "sender": "", "receiver": "", "brevo_api_key": ""})
+    email_cfg.setdefault("brevo_api_key", "")
+    email_cfg.setdefault("sender", "")
+    email_cfg.setdefault("receiver", "")
+    email_cfg.setdefault("enabled", True)
     for b in USER_BUCKETS:
         cfg.setdefault(b, [])
 
@@ -1777,45 +1783,62 @@ def add_log(msg):
     save_db(db)
 
 # ------------------------------------------------------------------
-# EMAIL (SMTP) — IPv6-route workaround
-# Kai VPS providers (jaise DigitalOcean) server ko ek IPv6 address de dete hain
-# jiska route poora configure nahi hota. "smtp.gmail.com" resolve karte waqt
-# Python kabhi IPv6 address try kar leta hai, aur usse connect hone ki koshish
-# "[Errno 101] Network is unreachable" de kar fail ho jati hai — jabke server ka
-# normal (IPv4) internet bilkul theek chal raha hota hai. Fix: SMTP call ke
-# dauran sirf IPv4 use karne ko force karo (hostname wahi "smtp.gmail.com"
-# rehta hai taake TLS/certificate check sahi rahe), aur turant baad wapas normal
-# kar do — baaki app par isse koi asar nahi padta.
+# EMAIL — Brevo HTTPS API (SMTP ports 25/465/587 DigitalOcean par HAMESHA
+# block rehte hain — ye unki apni official policy hai, spam rokne ke liye,
+# aur kisi bhi SMTP provider ke liye lagu hoti hai, chahe wo Gmail ho ya
+# koi aur). Isliye email ab HTTPS (port 443) ke zariye Brevo ki API se
+# bheji jati hai — ye port kabhi block nahi hota (isi se bot Binance se
+# baat karta hai). Poore app me email sirf isi function se jaati hai, is
+# liye trade/signal ke waqt jahan pehle call hoti thi, wahi ab bhi hoti
+# hai — koi aur jagah kuch badalna nahi pada.
 # ------------------------------------------------------------------
 _orig_getaddrinfo = socket.getaddrinfo
 
 def _ipv4_only_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
     return _orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
 
+BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
+
 def send_email_alert(subject, body_html, email_cfg):
     if not email_cfg.get("enabled") or not email_cfg.get("sender") or not email_cfg.get("receiver"):
         return False
-    socket.getaddrinfo = _ipv4_only_getaddrinfo  # is call ke liye IPv4 force
+    api_key = dec_secret(email_cfg.get("brevo_api_key", ""))
+    api_key = api_key.strip() if api_key else ""
+    if not api_key:
+        add_log("Email Error: Brevo API key set nahi hai — Limitation & Campaign me daalo.")
+        return False
+    payload = json.dumps({
+        "sender": {"name": "Apex Trading Bot", "email": email_cfg["sender"]},
+        "to": [{"email": email_cfg["receiver"]}],
+        "subject": subject,
+        "htmlContent": body_html
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        BREVO_API_URL, data=payload, method="POST",
+        headers={"api-key": api_key, "Content-Type": "application/json", "Accept": "application/json"}
+    )
+    socket.getaddrinfo = _ipv4_only_getaddrinfo  # is call ke liye IPv4 force (safety, HTTPS ke liye bhi)
     try:
-        msg = MIMEMultipart('alternative')
-        msg['From'] = email_cfg["sender"]; msg['To'] = email_cfg["receiver"]; msg['Subject'] = subject
-        msg.attach(MIMEText(body_html, 'html'))
-        server = smtplib.SMTP(email_cfg["host"], int(email_cfg["port"]), timeout=20)
-        server.starttls()
-        # Google App Password dikhata to spaces ke sath hai (jaise "abcd efgh ijkl mnop")
-        # par asli credential me koi space nahi hota. Agar spaces galti se save ho gaye
-        # hon (purani entry), yahan bhi turant saaf kar dete hain taake login fail na ho.
-        pwd = dec_secret(email_cfg.get("password"))
-        pwd = "".join(pwd.split()) if pwd else pwd
-        server.login(email_cfg["sender"], pwd)
-        server.sendmail(email_cfg["sender"], email_cfg["receiver"], msg.as_string())
-        server.quit()
-        return True
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            if 200 <= resp.status < 300:
+                return True
+            add_log(f"Email Error: Brevo HTTP {resp.status}")
+            return False
+    except urllib.error.HTTPError as e:
+        try:
+            err_body = e.read().decode("utf-8", errors="ignore")
+        except Exception:
+            err_body = ""
+        # Brevo error body me exact wajah hoti hai — jaise IP authorize nahi,
+        # ya sender email verify nahi, ya key galat. Bot Logs me poora dikhega.
+        add_log(f"Email Error: Brevo HTTP {e.code} - {err_body[:300]}")
+        return False
     except Exception as e:
         add_log(f"Email Error: {str(e)}")
         return False
     finally:
         socket.getaddrinfo = _orig_getaddrinfo  # turant wapas normal
+
 
 # ------------------------------------------------------------------
 # COIN UNIVERSE FILTER
@@ -2296,22 +2319,21 @@ elif config_menu == "📦 Limitation & Campaign":
         st.caption("Auto mode: bot exactly itni hi trades lega (2→2, 20→20), har coin sirf 1 baar, phir aaj ke liye ruk jayega. "
                    "Signal-Only mode: is limit se azaad — signal deta rahega.")
     with col2:
-        email_cfg = user_settings.setdefault("email", {"enabled": True, "host": "smtp.gmail.com", "port": 587, "sender": "", "password": "", "receiver": ""})
+        email_cfg = user_settings.setdefault("email", {"enabled": True, "sender": "", "receiver": "", "brevo_api_key": ""})
         e_en = st.checkbox("Enable Email Notifications", value=email_cfg.get("enabled", True))
-        e_host = st.text_input("SMTP Host", value=email_cfg.get("host", "smtp.gmail.com"))
-        e_port = st.number_input("SMTP Port", value=email_cfg.get("port", 587))
-        e_sender = st.text_input("Sender Gmail", value=email_cfg.get("sender", "")).strip()
-        e_pass_raw = st.text_input("Gmail App Password", type="password", value=dec_secret(email_cfg.get("password", "")))
-        # Google App Password ko spaces ke sath dikhata hai (sirf padhne ke liye) —
-        # asli credential me space nahi hota. Yahan khud spaces hata dete hain taake
-        # aap jaise bhi paste karo (spaces ke sath ya bina), save hamesha sahi ho.
-        e_pass = "".join(e_pass_raw.split())
+        e_sender = st.text_input("Sender Email (Brevo par verified hona chahiye)", value=email_cfg.get("sender", "")).strip()
+        e_key_raw = st.text_input("Brevo API Key", type="password", value=dec_secret(email_cfg.get("brevo_api_key", "")))
+        e_key = e_key_raw.strip()
         e_recv = st.text_input("Send Alerts To", value=email_cfg.get("receiver", "")).strip()
-        email_cfg.update({"enabled": e_en, "host": e_host, "port": e_port,
-                          "sender": e_sender, "password": enc_secret(e_pass), "receiver": e_recv})
+        email_cfg.update({"enabled": e_en, "sender": e_sender,
+                          "brevo_api_key": enc_secret(e_key), "receiver": e_recv})
 
-        st.caption("Tip: Gmail ke liye normal account password kaam nahi karega — Google Account → Security → "
-                   "2-Step Verification (on karo) → App Passwords se ek 16-digit App Password banao, wahi yahan daalo.")
+        st.caption("Tip: DigitalOcean jaise VPS par SMTP (Gmail) ports hamesha block hote hain, isliye email ab "
+                   "**Brevo** (free, 300/din) ke zariye HTTPS se jati hai. brevo.com par free sign-up karo, apna "
+                   "sender email verify karo, phir SMTP & API → API Keys se key banao. **Zaroori:** Brevo ke Security "
+                   "settings me apne server ka IP (jo aapke droplet ka public IP hai) authorize/whitelist karna hoga, "
+                   "warna API key kaam nahi karegi.")
+
 
         if st.button("📧 Send Test Email", use_container_width=True):
             with st.spinner("Test email bheja ja raha hai..."):
