@@ -1,15 +1,4 @@
-﻿
-
-
-
-
-
-
-
-
-
-
-import streamlit as st
+﻿﻿import streamlit as st
 import ccxt
 import pandas as pd
 import numpy as np
@@ -75,8 +64,10 @@ st.markdown("""
     }
 
     .crypto-card {
-        background: linear-gradient(150deg, #181a20 0%, #121418 100%);
-        border: 1px solid #2b313a;
+        background: linear-gradient(150deg, rgba(24,26,32,0.72) 0%, rgba(18,20,24,0.72) 100%);
+        backdrop-filter: blur(14px) saturate(120%);
+        -webkit-backdrop-filter: blur(14px) saturate(120%);
+        border: 1px solid rgba(58,69,82,0.45);
         border-radius: 14px;
         padding: 20px;
         margin-bottom: 15px;
@@ -120,8 +111,10 @@ st.markdown("""
     .rule-tag:hover { background:#0ecb8140; }
 
     .sig-card {
-        background: linear-gradient(180deg,#181a20 0%, #131519 100%);
-        border: 1px solid #2b313a;
+        background: linear-gradient(180deg, rgba(24,26,32,0.72) 0%, rgba(19,21,25,0.72) 100%);
+        backdrop-filter: blur(14px) saturate(120%);
+        -webkit-backdrop-filter: blur(14px) saturate(120%);
+        border: 1px solid rgba(43,49,58,0.6);
         border-left: 4px solid #fcd535;
         border-radius: 14px;
         padding: 16px 20px;
@@ -132,8 +125,10 @@ st.markdown("""
     .sig-card:hover { transform: translateY(-2px); border-color: #3a4552; }
 
     .trade-card {
-        background: linear-gradient(180deg,#181a20 0%, #131519 100%);
-        border: 1px solid #2b313a;
+        background: linear-gradient(180deg, rgba(24,26,32,0.72) 0%, rgba(19,21,25,0.72) 100%);
+        backdrop-filter: blur(14px) saturate(120%);
+        -webkit-backdrop-filter: blur(14px) saturate(120%);
+        border: 1px solid rgba(43,49,58,0.6);
         border-left: 4px solid #0ecb81;
         border-radius: 14px;
         padding: 16px 20px;
@@ -174,7 +169,9 @@ st.markdown("""
     [data-testid="stDataFrame"] { border: 1px solid #2b313a; border-radius: 12px; overflow: hidden; }
 
     section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0c1015 0%, #090c10 100%);
+        background: linear-gradient(180deg, rgba(12,16,21,0.88) 0%, rgba(9,12,16,0.92) 100%);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
         border-right: 1px solid #20262e;
     }
 
@@ -1251,20 +1248,36 @@ def create_exchange(ex_cfg):
     })
 
     if demo:
-        try:
-            ex_obj.set_sandbox_mode(True)
-        except Exception:
-            pass
-        sb = _EXCHANGE_SANDBOX.get(name, {})
-        endpoints = sb.get("futures" if is_futures else "spot", {})
-        try:
-            for k, v in endpoints.items():
-                if k in ex_obj.urls.get("api", {}):
-                    ex_obj.urls["api"][k] = v
-        except Exception:
-            pass
+        if is_futures:
+            # Binance ne apna Futures Testnet (testnet.binancefuture.com) discontinue kar diya hai —
+            # ccxt ab is exchange par futures ke sath set_sandbox_mode(True) call karte hi
+            # NotSupported error deta hai ("sandbox mode is not supported for futures currently").
+            # Isliye futures+demo ke liye set_sandbox_mode bilkul call NAHI karte — bas manually
+            # deprecated testnet URLs try karte hain (agar Binance kabhi wapas enable kare), aur
+            # agar wo bhi fail ho to caller ko clean/readable error milega (raw ccxt trace nahi).
+            sb = _EXCHANGE_SANDBOX.get(name, {})
+            endpoints = sb.get("futures", {})
+            try:
+                for k, v in endpoints.items():
+                    if k in ex_obj.urls.get("api", {}):
+                        ex_obj.urls["api"][k] = v
+            except Exception:
+                pass
+        else:
+            try:
+                ex_obj.set_sandbox_mode(True)
+            except Exception:
+                pass
+            sb = _EXCHANGE_SANDBOX.get(name, {})
+            endpoints = sb.get("spot", {})
+            try:
+                for k, v in endpoints.items():
+                    if k in ex_obj.urls.get("api", {}):
+                        ex_obj.urls["api"][k] = v
+            except Exception:
+                pass
 
-    if is_futures and api_key:
+    if is_futures and api_key and not demo:
         for _sym in ["BTC/USDT:USDT", "ETH/USDT:USDT", "BTC/USDT", "ETH/USDT"]:
             try:
                 ex_obj.set_leverage(FUTURES_SAFE_LEVERAGE, _sym)
@@ -1894,18 +1907,22 @@ if config_menu == "🔌 Exchange Integration":
         market_type = st.radio("Market Architecture", ["Spot", "Futures (Derivatives)"], index=0 if user_settings["exchange"].get("market") == "Spot" else 1, horizontal=True)
         if "Futures" in market_type:
             st.caption(f"🛡️ **Auto Safety:** Futures select karte hi bot <b>leverage={FUTURES_SAFE_LEVERAGE}x aur margin={FUTURES_MARGIN_MODE}</b> set kar dega — liquidation risk kam.", unsafe_allow_html=True)
+            st.markdown(
+                "<div class='crypto-card' style='border-left:4px solid #f0b90b; padding:12px 16px;'>"
+                "⚠️ <b>Binance ne apna Futures Testnet band kar diya hai</b> — is liye 'Sandbox / Testnet Mode' "
+                "Futures ke sath ab kaam nahi karega (ye Binance ki taraf se hua hai, app ka bug nahi). "
+                "Agar test karna hai to <b>Sandbox OFF</b> rakh kar Binance ke naye <b>Demo Trading</b> account "
+                "(app me banaya jane wala paper-trading account) ki API keys use karo — wo normal (live) API "
+                "endpoints hi use karti hain, bas fake balance ke sath."
+                "</div>", unsafe_allow_html=True)
         api_k = st.text_input("API Key", type="password", value=dec_secret(user_settings["exchange"].get("key", "")))
         secret_k = st.text_input("Secret Key", type="password", value=dec_secret(user_settings["exchange"].get("secret", "")))
-        demo_chk = st.checkbox("Enable Sandbox / Testnet Mode", value=user_settings["exchange"].get("demo", True))
+        demo_chk = st.checkbox("Enable Sandbox / Testnet Mode", value=user_settings["exchange"].get("demo", True),
+                                help="Futures ke liye Binance ka testnet ab discontinued hai — Futures par isko OFF rakh kar Binance 'Demo Trading' API keys use karo.")
         st.caption("Tip: exchange par key banate waqt sirf **Spot trading** on karo, **Withdrawal OFF** rakho, aur ho sake to server IP whitelist karo.")
         if st.button("🔌 Connect & Verify API", type="primary", use_container_width=True):
             try:
                 # Dynamic factory — Binance/Bybit/OKX/KuCoin sab me same code se connect ho jayega
-                test_cfg = {"name": ex_choice, "market": market_type,
-                            "key": enc_secret(api_k) if api_k else "",
-                            "secret": enc_secret(secret_k) if secret_k else "",
-                            "demo": demo_chk}
-                # connect-time check ke liye actual decrypted values hi pass karte hain (dec_secret already works)
                 test_cfg_plain = {"name": ex_choice, "market": market_type,
                                   "key": api_k, "secret": secret_k, "demo": demo_chk}
                 ex = create_exchange(test_cfg_plain)
@@ -1920,7 +1937,13 @@ if config_menu == "🔌 Exchange Integration":
             except Exception as e:
                 user_settings["exchange"]["connected"] = False
                 save_db(db)
-                st.error(f"❌ Connection failed: {str(e)}")
+                err_txt = str(e)
+                if "sandbox" in err_txt.lower() and "futures" in err_txt.lower():
+                    st.error("❌ Binance ka Futures Testnet ab discontinued hai, is liye Sandbox Mode Futures ke sath "
+                              "connect nahi ho sakta. Upar 'Enable Sandbox / Testnet Mode' checkbox OFF karo aur "
+                              "Binance 'Demo Trading' se generate ki gayi API keys try karo, ya Spot market select karo.")
+                else:
+                    st.error(f"❌ Connection failed: {err_txt}")
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
@@ -2368,4 +2391,3 @@ else:
                 st.text(line)
         else:
             st.info("Koi log abhi tak nahi bana.")
-
