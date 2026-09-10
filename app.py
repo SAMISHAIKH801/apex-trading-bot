@@ -2402,6 +2402,11 @@
 
 
 
+
+
+
+
+
 import streamlit as st
 import ccxt
 import pandas as pd
@@ -2448,11 +2453,12 @@ st.markdown("""
     }
 
     .stApp {
-        background:
-            radial-gradient(circle at 12% 0%, rgba(252,213,53,0.06), transparent 32%),
-            radial-gradient(circle at 88% 100%, rgba(14,203,129,0.05), transparent 38%),
-            #0b0e11;
-        color: #eaecef;
+         background:
+             radial-gradient(circle at 10% 0%, rgba(252,213,53,0.055), transparent 30%),
+             radial-gradient(circle at 92% 18%, rgba(59,130,246,0.055), transparent 30%),
+             radial-gradient(circle at 88% 100%, rgba(14,203,129,0.045), transparent 36%),
+             #0b0e11;
+         color: #eaecef;
     }
 
     .block-container { padding-top: 1.6rem; padding-bottom: 3rem; }
@@ -2468,10 +2474,10 @@ st.markdown("""
     }
 
     .crypto-card {
-        background: linear-gradient(150deg, rgba(24,26,32,0.78) 0%, rgba(18,20,24,0.78) 100%);
-        -webkit-backdrop-filter: blur(6px);
-        backdrop-filter: blur(6px);
-        border: 1px solid #2b313a;
+        background: linear-gradient(150deg, rgba(24,26,32,0.72) 0%, rgba(18,20,24,0.72) 100%);
+        backdrop-filter: blur(14px) saturate(120%);
+        -webkit-backdrop-filter: blur(14px) saturate(120%);
+        border: 1px solid rgba(58,69,82,0.45);
         border-radius: 14px;
         padding: 20px;
         margin-bottom: 15px;
@@ -2480,6 +2486,21 @@ st.markdown("""
         transition: border-color 0.2s ease, transform 0.2s ease;
     }
     .crypto-card:hover { border-color: #3a4552; }
+    .apex-blue-glow {
+         border: 1px solid rgba(59,130,246,0.30);
+         box-shadow: 0 0 0 1px rgba(59,130,246,0.04), 0 12px 32px rgba(37,99,235,0.08);
+    }
+    .apex-section-title {
+         display:flex; align-items:center; gap:10px;
+         color:#eaecef; font-weight:800;
+    }
+    .apex-section-title .dot {
+         width:8px; height:8px; border-radius:50%;
+         background:#3b82f6; box-shadow:0 0 12px rgba(59,130,246,0.65);
+         display:inline-block;
+    }
+    .apex-env-live { color:#0ecb81; font-weight:800; }
+    .apex-env-demo { color:#3b82f6; font-weight:800; }
 
     .badge-live {
         background-color: rgba(14, 203, 129, 0.15);
@@ -2515,10 +2536,10 @@ st.markdown("""
     .rule-tag:hover { background:#0ecb8140; }
 
     .sig-card {
-        background: linear-gradient(180deg, rgba(24,26,32,0.78) 0%, rgba(19,21,25,0.78) 100%);
-        -webkit-backdrop-filter: blur(6px);
-        backdrop-filter: blur(6px);
-        border: 1px solid #2b313a;
+        background: linear-gradient(180deg, rgba(24,26,32,0.72) 0%, rgba(19,21,25,0.72) 100%);
+        backdrop-filter: blur(14px) saturate(120%);
+        -webkit-backdrop-filter: blur(14px) saturate(120%);
+        border: 1px solid rgba(43,49,58,0.6);
         border-left: 4px solid #fcd535;
         border-radius: 14px;
         padding: 16px 20px;
@@ -2529,10 +2550,10 @@ st.markdown("""
     .sig-card:hover { transform: translateY(-2px); border-color: #3a4552; }
 
     .trade-card {
-        background: linear-gradient(180deg, rgba(24,26,32,0.78) 0%, rgba(19,21,25,0.78) 100%);
-        -webkit-backdrop-filter: blur(6px);
-        backdrop-filter: blur(6px);
-        border: 1px solid #2b313a;
+        background: linear-gradient(180deg, rgba(24,26,32,0.72) 0%, rgba(19,21,25,0.72) 100%);
+        backdrop-filter: blur(14px) saturate(120%);
+        -webkit-backdrop-filter: blur(14px) saturate(120%);
+        border: 1px solid rgba(43,49,58,0.6);
         border-left: 4px solid #0ecb81;
         border-radius: 14px;
         padding: 16px 20px;
@@ -2573,9 +2594,9 @@ st.markdown("""
     [data-testid="stDataFrame"] { border: 1px solid #2b313a; border-radius: 12px; overflow: hidden; }
 
     section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, rgba(12,16,21,0.88) 0%, rgba(9,12,16,0.88) 100%);
-        -webkit-backdrop-filter: blur(8px);
-        backdrop-filter: blur(8px);
+        background: linear-gradient(180deg, rgba(12,16,21,0.88) 0%, rgba(9,12,16,0.92) 100%);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
         border-right: 1px solid #20262e;
     }
 
@@ -2840,7 +2861,7 @@ USER_BUCKETS = ["active_trades", "trade_history", "signals_feed", "signal_histor
 
 def _blank_user_settings():
     return {
-        "exchange": {"name": "Binance", "market": "Spot", "key": "", "secret": "", "demo": True, "connected": False},
+        "exchange": {"name": "Binance", "market": "Spot", "key": "", "secret": "", "demo": True, "environment": "Demo Trading", "connected": False},
         "strategy": {
             "mode": "manual",
             "exec_mode": "Automated Trading (Bot takes trades & sets TP/SL automatically)",
@@ -2872,7 +2893,21 @@ def _backfill_user(cfg):
     strat.setdefault("sl_pct", 2.0)
     strat.setdefault("tp_pct", 4.5)
     cfg.setdefault("bot_active", False)
-    cfg.setdefault("exchange", {"name": "Binance", "market": "Spot", "key": "", "secret": "", "demo": True, "connected": False})
+
+    # Exchange config migration: old versions used only demo=True/False.
+    ex_cfg = cfg.setdefault("exchange", {
+        "name": "Binance", "market": "Spot", "key": "", "secret": "",
+        "demo": True, "environment": "Demo Trading", "connected": False
+    })
+    ex_cfg.setdefault("name", "Binance")
+    ex_cfg.setdefault("market", "Spot")
+    ex_cfg.setdefault("key", "")
+    ex_cfg.setdefault("secret", "")
+    ex_cfg.setdefault("connected", False)
+    if ex_cfg.get("environment") not in ("Live", "Demo Trading", "Sandbox / Testnet"):
+        ex_cfg["environment"] = "Demo Trading" if bool(ex_cfg.get("demo", True)) else "Live"
+    ex_cfg["demo"] = ex_cfg.get("environment") == "Demo Trading"
+
     cfg.setdefault("limits", {"campaign_days": 1, "daily_limit": 1, "trade_amount": 100.0})
     flt = cfg.setdefault("filters", dict(DEFAULT_FILTERS))
     for k, v in DEFAULT_FILTERS.items():
@@ -3611,60 +3646,98 @@ def build_symbol_universe(ex, tickers=None, min_volume=1_000_000, top_n=None, ex
     return universe[:top_n] if top_n else universe
 
 # ==========================================
-# EXCHANGE FACTORY  (Spot/Futures sahi, har exchange ke sandbox URLs, leverage set)
+# EXCHANGE FACTORY  (Live + Demo Trading + optional Testnet)
 # ==========================================
 EXCHANGE_LIST = ["Binance", "Bybit", "OKX", "KuCoin"]
 
-# Per-exchange demo/sandbox endpoints.
-#
-# IMPORTANT (fix, Sep 2026): Binance retired its old ccxt sandbox mechanism.
-# Calling ex.set_sandbox_mode(True) on current ccxt now raises:
-#   "binance testnet/sandbox mode is not supported for futures anymore..."
-# — and it throws this for BOTH Spot and Futures, not just Futures (that's
-# the exact error you saw on the Exchange Integration screen). Binance's
-# replacement is their new "Demo Trading" REST hosts, so instead of calling
-# set_sandbox_mode() for Binance at all, we point every relevant endpoint at
-# these hosts manually. Bybit/OKX/KuCoin still support ccxt's built-in
-# set_sandbox_mode(), so those are untouched.
-_EXCHANGE_SANDBOX = {
-    "Binance": {
-        "spot": {
-            "public":  "https://demo-api.binance.com/api/v3",
-            "private": "https://demo-api.binance.com/api/v3",
-            "sapi":    "https://demo-api.binance.com/sapi/v1",
-            "sapiV2":  "https://demo-api.binance.com/sapi/v2",
-            "sapiV3":  "https://demo-api.binance.com/sapi/v3",
-            "sapiV4":  "https://demo-api.binance.com/sapi/v4",
-        },
-        "futures": {
-            "fapiPublic":    "https://testnet.binancefuture.com/fapi/v1",
-            "fapiPrivate":   "https://testnet.binancefuture.com/fapi/v1",
-            "fapiPublicV2":  "https://testnet.binancefuture.com/fapi/v2",
-            "fapiPrivateV2": "https://testnet.binancefuture.com/fapi/v2",
-            "fapiData":      "https://testnet.binancefuture.com/futures/data",
-        },
+# Current Binance non-production REST hosts.
+_BINANCE_DEMO_URLS = {
+    "spot": {
+        "public": "https://demo-api.binance.com/api/v3",
+        "private": "https://demo-api.binance.com/api/v3",
+    },
+    "futures": {
+        "fapiPublic": "https://demo-fapi.binance.com/fapi/v1",
+        "fapiPrivate": "https://demo-fapi.binance.com/fapi/v1",
+        "fapiPublicV2": "https://demo-fapi.binance.com/fapi/v2",
+        "fapiPrivateV2": "https://demo-fapi.binance.com/fapi/v2",
+        "fapiPublicV3": "https://demo-fapi.binance.com/fapi/v3",
+        "fapiPrivateV3": "https://demo-fapi.binance.com/fapi/v3",
     },
 }
-FUTURES_SAFE_LEVERAGE = 3    # default safe leverage — liquidation risk kam
-FUTURES_MARGIN_MODE = "isolated"  # cross nahi — sirf itna hi margin use, poora account safe
+
+FUTURES_SAFE_LEVERAGE = 3
+FUTURES_MARGIN_MODE = "isolated"
+
+
+def _exchange_environment(ex_cfg):
+    """Normalize old demo=True/False config into an explicit environment."""
+    env = str(ex_cfg.get("environment") or "").strip()
+    if env not in ("Live", "Demo Trading", "Sandbox / Testnet"):
+        env = "Demo Trading" if bool(ex_cfg.get("demo", True)) else "Live"
+    return env
+
+
+def _apply_binance_demo_urls(ex_obj, is_futures):
+    """Fallback for older CCXT builds that do not expose enable_demo_trading()."""
+    try:
+        api = ex_obj.urls.setdefault("api", {})
+        for key, url in _BINANCE_DEMO_URLS["futures" if is_futures else "spot"].items():
+            if key in api:
+                api[key] = url
+    except Exception:
+        pass
+
+
+def _enable_demo_mode(ex_obj, exchange_name, is_futures):
+    """
+    Switch CCXT into the exchange's DEMO environment.
+    This is separate from set_sandbox_mode(): Binance Demo Trading is
+    simulated trading on dedicated demo hosts, not the retired Futures Testnet.
+    """
+    demo_fn = getattr(ex_obj, "enable_demo_trading", None)
+    if callable(demo_fn):
+        try:
+            demo_fn(True)
+            return
+        except TypeError:
+            try:
+                demo_fn()
+                return
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    if exchange_name.lower() == "binance":
+        _apply_binance_demo_urls(ex_obj, is_futures)
+        return
+
+    raise RuntimeError(
+        f"{exchange_name} Demo Trading is not supported by this installed CCXT version. "
+        f"Update CCXT first: pip install -U ccxt"
+    )
+
 
 def create_exchange(ex_cfg):
     """
-    ex_cfg = {"name": "Binance", "market": "Spot"|"Futures (Derivatives)",
-              "key": "...", "secret": "...", "demo": True/False}
-    Returns: ccxt exchange object — Spot = spot, Futures = USDT-M swap (coin-m nahi).
-    Demo (Testnet/Sandbox) aur Live — dono modes ke liye kaam karta hai.
+    ex_cfg:
+      name: Binance / Bybit / OKX / KuCoin
+      market: Spot / Futures (Derivatives)
+      key, secret: API credentials
+      environment: Live / Demo Trading / Sandbox / Testnet
     """
     name = (ex_cfg.get("name") or "Binance").strip()
     market = (ex_cfg.get("market") or "Spot").strip()
     is_futures = _is_futures_market(market)
+    environment = _exchange_environment(ex_cfg)
+
     api_key = dec_secret(ex_cfg.get("key", ""))
     secret = dec_secret(ex_cfg.get("secret", ""))
-    demo = bool(ex_cfg.get("demo", True))
 
     ccxt_class_name = name.lower()
     if not hasattr(ccxt, ccxt_class_name):
-        ccxt_class_name = "binance"  # fallback
+        raise RuntimeError(f"CCXT exchange '{name}' is not available in the installed ccxt package.")
     cls = getattr(ccxt, ccxt_class_name)
 
     default_type = "swap" if is_futures else "spot"
@@ -3672,43 +3745,30 @@ def create_exchange(ex_cfg):
         "apiKey": api_key or "",
         "secret": secret or "",
         "enableRateLimit": True,
-        "options": {"defaultType": default_type, "adjustForTimeDifference": True, "defaultSubType": "linear"},
+        "options": {
+            "defaultType": default_type,
+            "adjustForTimeDifference": True,
+            "defaultSubType": "linear",
+        },
     })
 
-    if demo:
-        if name == "Binance":
-            # Binance: DON'T call set_sandbox_mode() — current ccxt throws NotSupported
-            # for it unconditionally now. Manually swap every relevant endpoint at
-            # Binance's Demo Trading / Futures Testnet hosts instead.
-            sb = _EXCHANGE_SANDBOX.get(name, {})
-            endpoints = sb.get("futures" if is_futures else "spot", {})
-            try:
-                api_urls = ex_obj.urls.get("api")
-                if isinstance(api_urls, dict):
-                    for k, v in endpoints.items():
-                        if k in api_urls:
-                            api_urls[k] = v
-            except Exception:
-                pass
-        else:
-            # Bybit / OKX / KuCoin still support ccxt's built-in sandbox switch.
-            try:
-                ex_obj.set_sandbox_mode(True)
-            except Exception:
-                pass
-            sb = _EXCHANGE_SANDBOX.get(name, {})
-            endpoints = sb.get("futures" if is_futures else "spot", {})
-            try:
-                api_urls = ex_obj.urls.get("api")
-                if isinstance(api_urls, dict):
-                    for k, v in endpoints.items():
-                        if k in api_urls:
-                            api_urls[k] = v
-            except Exception:
-                pass
-    # demo == False (LIVE account) -> koi override nahi, ccxt ke default LIVE urls
-    # (jo class banate waqt already set hote hain) use hote hain as-is.
+    if environment == "Demo Trading":
+        _enable_demo_mode(ex_obj, name, is_futures)
 
+    elif environment == "Sandbox / Testnet":
+        if name.lower() == "binance" and is_futures:
+            raise RuntimeError(
+                "Binance USD-M Futures ka purana Testnet endpoint retired hai. "
+                "Futures ke liye 'Demo Trading' select karo aur Binance Demo API keys use karo."
+            )
+        sandbox_fn = getattr(ex_obj, "set_sandbox_mode", None)
+        if not callable(sandbox_fn):
+            raise RuntimeError(
+                f"{name} Sandbox/Testnet is not supported by this installed CCXT version."
+            )
+        sandbox_fn(True)
+
+    # Safe futures defaults. This is applied to both Live and Demo accounts.
     if is_futures and api_key:
         for _sym in ["BTC/USDT:USDT", "ETH/USDT:USDT", "BTC/USDT", "ETH/USDT"]:
             try:
@@ -3728,18 +3788,30 @@ def create_exchange(ex_cfg):
 # ==========================================
 # UNIVERSE / TICKERS CACHE  (har UNIVERSE_CACHE_TTL seconds me refresh, CPU bachao)
 # ==========================================
-_UNIVERSE_CACHE = {"data": None, "tickers": None, "ts": 0}
+_UNIVERSE_CACHE = {"key": None, "tickers": None, "ts": 0}
 
 def get_cached_tickers(ex):
-    """Cached tickers fetch — baar-baar Binance API hit nahi hoga."""
+    """Cached tickers — exchange/market change par stale data reuse nahi hoga."""
     global _UNIVERSE_CACHE
     now = time.time()
-    if _UNIVERSE_CACHE["tickers"] is not None and (now - _UNIVERSE_CACHE["ts"]) < UNIVERSE_CACHE_TTL:
+    cache_key = (
+        getattr(ex, "id", "unknown"),
+        str(getattr(ex, "options", {}).get("defaultType", "")),
+        str(getattr(ex, "urls", {}).get("api", {})),
+    )
+    if (
+        _UNIVERSE_CACHE["key"] == cache_key
+        and _UNIVERSE_CACHE["tickers"] is not None
+        and (now - _UNIVERSE_CACHE["ts"]) < UNIVERSE_CACHE_TTL
+    ):
         return _UNIVERSE_CACHE["tickers"]
     try:
-        _UNIVERSE_CACHE["tickers"] = ex.fetch_tickers()
+        tickers = ex.fetch_tickers()
+        _UNIVERSE_CACHE["key"] = cache_key
+        _UNIVERSE_CACHE["tickers"] = tickers
         _UNIVERSE_CACHE["ts"] = now
     except Exception:
+        _UNIVERSE_CACHE["key"] = cache_key
         _UNIVERSE_CACHE["tickers"] = None
     return _UNIVERSE_CACHE["tickers"]
 
@@ -4324,48 +4396,212 @@ config_menu = st.sidebar.radio(
 # 1. EXCHANGE INTEGRATION
 # ==========================================
 if config_menu == "🔌 Exchange Integration":
-    st.title("🔌 Exchange API Integration")
+    st.markdown(
+        "<div class='apex-section-title'><span class='dot'></span><span>Exchange API Integration</span></div>",
+        unsafe_allow_html=True
+    )
+    st.caption("Live account ya Demo Trading account — dono ka connection alag environment par verify hota hai.")
     st.markdown("---")
+
+    _backfill_user(user_settings)
+    ex_cfg = user_settings["exchange"]
+
     if _CRYPTO_OK:
-        st.markdown("<div class='crypto-card' style='border-left:4px solid #0ecb81;'>🔐 API key aur secret database me <b>encrypted</b> save hote hain (plain nahi).</div>", unsafe_allow_html=True)
+        st.markdown(
+            "<div class='crypto-card apex-blue-glow' style='border-left:4px solid #3b82f6;'>"
+            "🔐 <b>API Security:</b> API key aur secret encrypted form me database me save hote hain. "
+            "Plain key logs me nahi likhi jati."
+            "</div>",
+            unsafe_allow_html=True
+        )
     else:
-        st.markdown("<div class='crypto-card' style='border-left:4px solid #f6465d;'>⚠️ <b>cryptography</b> install nahi — keys abhi plain save hongi. <code>pip install cryptography</code> chala kar dobara connect karo.</div>", unsafe_allow_html=True)
-    col1, col2 = st.columns([1.3, 1], gap="large")
+        st.markdown(
+            "<div class='crypto-card' style='border-left:4px solid #f6465d;'>"
+            "⚠️ <b>cryptography</b> install nahi — keys encrypt nahi hongi. "
+            "Terminal me <code>pip install cryptography</code> chalao."
+            "</div>",
+            unsafe_allow_html=True
+        )
+
+    col1, col2 = st.columns([1.2, 1], gap="large")
+
     with col1:
-        st.markdown("<div class='crypto-card'>", unsafe_allow_html=True)
-        ex_list = EXCHANGE_LIST  # Binance, Bybit, OKX, KuCoin
-        cur_ex = user_settings["exchange"].get("name", "Binance")
-        ex_choice = st.selectbox("Select Crypto Exchange", ex_list, index=ex_list.index(cur_ex) if cur_ex in ex_list else 0)
-        market_type = st.radio("Market Architecture", ["Spot", "Futures (Derivatives)"], index=0 if user_settings["exchange"].get("market") == "Spot" else 1, horizontal=True)
-        if "Futures" in market_type:
-            st.caption(f"🛡️ **Auto Safety:** Futures select karte hi bot <b>leverage={FUTURES_SAFE_LEVERAGE}x aur margin={FUTURES_MARGIN_MODE}</b> set kar dega — liquidation risk kam.", unsafe_allow_html=True)
-        api_k = st.text_input("API Key", type="password", value=dec_secret(user_settings["exchange"].get("key", "")))
-        secret_k = st.text_input("Secret Key", type="password", value=dec_secret(user_settings["exchange"].get("secret", "")))
-        demo_chk = st.checkbox("Enable Sandbox / Testnet Mode", value=user_settings["exchange"].get("demo", True))
-        st.caption("Tip: exchange par key banate waqt sirf **Spot trading** on karo, **Withdrawal OFF** rakho, aur ho sake to server IP whitelist karo.")
-        if st.button("🔌 Connect & Verify API", type="primary", use_container_width=True):
-            try:
-                # Dynamic factory — Binance/Bybit/OKX/KuCoin sab me same code se connect ho jayega
-                test_cfg = {"name": ex_choice, "market": market_type,
-                            "key": enc_secret(api_k) if api_k else "",
-                            "secret": enc_secret(secret_k) if secret_k else "",
-                            "demo": demo_chk}
-                # connect-time check ke liye actual decrypted values hi pass karte hain (dec_secret already works)
-                test_cfg_plain = {"name": ex_choice, "market": market_type,
-                                  "key": api_k, "secret": secret_k, "demo": demo_chk}
-                ex = create_exchange(test_cfg_plain)
-                # Pehle load_markets phir balance (ccxt me kai exchanges ko is order me zaroori hota hai)
-                ex.load_markets()
-                ex.fetch_balance()
-                user_settings["exchange"] = {"name": ex_choice, "market": market_type,
-                                             "key": enc_secret(api_k), "secret": enc_secret(secret_k),
-                                             "demo": demo_chk, "connected": True}
-                save_db(db)
-                st.success(f"✨ Successfully connected to {ex_choice} ({market_type})! Keys {'encrypted' if _CRYPTO_OK else 'saved'}.")
-            except Exception as e:
-                user_settings["exchange"]["connected"] = False
-                save_db(db)
-                st.error(f"❌ Connection failed: {str(e)}")
+        st.markdown("<div class='crypto-card apex-blue-glow'>", unsafe_allow_html=True)
+
+        cur_ex = ex_cfg.get("name", "Binance")
+        ex_choice = st.selectbox(
+            "Select Crypto Exchange",
+            EXCHANGE_LIST,
+            index=EXCHANGE_LIST.index(cur_ex) if cur_ex in EXCHANGE_LIST else 0,
+        )
+
+        current_market = ex_cfg.get("market", "Spot")
+        market_type = st.radio(
+            "Market Architecture",
+            ["Spot", "Futures (Derivatives)"],
+            index=0 if current_market == "Spot" else 1,
+            horizontal=True,
+        )
+
+        current_env = _exchange_environment(ex_cfg)
+        env_choice = st.radio(
+            "Account Environment",
+            ["Demo Trading", "Live"],
+            index=0 if current_env == "Demo Trading" else 1,
+            horizontal=True,
+        )
+
+        if env_choice == "Demo Trading":
+            if ex_choice == "Binance":
+                demo_host = "demo-fapi.binance.com" if _is_futures_market(market_type) else "demo-api.binance.com"
+                st.markdown(
+                    f"<div class='crypto-card' style='border-left:4px solid #3b82f6; padding:12px 15px;'>"
+                    f"<span class='apex-env-demo'>🔵 DEMO TRADING ACTIVE</span><br>"
+                    f"<span style='color:#9aa4b2;font-size:12px;'>API endpoint: {demo_host}</span><br>"
+                    f"<span style='color:#9aa4b2;font-size:12px;'>Demo API keys use karo — LIVE keys yahan use mat karo.</span>"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
+        else:
+            st.markdown(
+                "<div class='crypto-card' style='border-left:4px solid #0ecb81; padding:12px 15px;'>"
+                "<span class='apex-env-live'>🟢 LIVE ACCOUNT ACTIVE</span><br>"
+                "<span style='color:#9aa4b2;font-size:12px;'>Real account orders place ho sakte hain. "
+                "Withdrawal permission OFF rakhna strongly recommended hai.</span>"
+                "</div>",
+                unsafe_allow_html=True
+            )
+
+        api_k = st.text_input(
+            "API Key",
+            type="password",
+            value=dec_secret(ex_cfg.get("key", "")),
+            key="exchange_api_key_input"
+        )
+        secret_k = st.text_input(
+            "Secret Key",
+            type="password",
+            value=dec_secret(ex_cfg.get("secret", "")),
+            key="exchange_secret_key_input"
+        )
+
+        if env_choice == "Demo Trading":
+            st.caption("🔵 Demo keys sirf Demo environment ke liye hain. Live keys aur Demo keys mix mat karo.")
+        else:
+            st.caption("🟢 Live keys real funds access kar sakti hain. Withdrawal OFF + IP whitelist use karo.")
+
+        if _is_futures_market(market_type):
+            st.caption(
+                f"🛡️ Futures safety: bot default leverage **{FUTURES_SAFE_LEVERAGE}x** aur "
+                f"margin mode **{FUTURES_MARGIN_MODE}** set karne ki koshish karega."
+            )
+
+        if st.button("🔌 Connect & Verify API", type="primary", use_container_width=True, key="connect_exchange"):
+            if not api_k.strip() or not secret_k.strip():
+                st.error("❌ API Key aur Secret Key dono required hain.")
+            else:
+                try:
+                    test_cfg_plain = {
+                        "name": ex_choice,
+                        "market": market_type,
+                        "key": api_k.strip(),
+                        "secret": secret_k.strip(),
+                        "environment": env_choice,
+                        "demo": env_choice == "Demo Trading",
+                    }
+
+                    with st.spinner(f"{ex_choice} {env_choice} API verify ho rahi hai..."):
+                        ex = create_exchange(test_cfg_plain)
+                        ex.load_markets()
+                        balance = ex.fetch_balance()
+
+                    user_settings["exchange"] = {
+                        "name": ex_choice,
+                        "market": market_type,
+                        "key": enc_secret(api_k.strip()),
+                        "secret": enc_secret(secret_k.strip()),
+                        "environment": env_choice,
+                        "demo": env_choice == "Demo Trading",
+                        "connected": True,
+                    }
+                    save_db(db)
+
+                    total = None
+                    try:
+                        total = balance.get("total", {}).get("USDT")
+                    except Exception:
+                        pass
+                    balance_note = f" | USDT balance: {float(total):,.2f}" if total is not None else ""
+                    st.success(
+                        f"✅ {ex_choice} connected successfully — {env_choice} / {market_type}{balance_note}"
+                    )
+                    st.rerun()
+
+                except Exception as e:
+                    ex_cfg["connected"] = False
+                    save_db(db)
+
+                    err_txt = str(e)
+                    low = err_txt.lower()
+
+                    if "invalid api-key" in low or "-2015" in low or ("api-key" in low and "invalid" in low):
+                        st.error(
+                            "❌ API key reject hui. Confirm karo ke key isi selected environment ki hai "
+                            "(Demo key → Demo Trading, Live key → Live) aur key permissions/API restrictions sahi hain."
+                        )
+                    elif "demo" in low and ("not supported" in low or "unsupported" in low):
+                        st.error(
+                            "❌ Installed CCXT Demo Trading support nahi de raha. "
+                            "Terminal me `pip install -U ccxt` chalao, phir app restart karo."
+                        )
+                    elif "sandbox" in low and "futures" in low:
+                        st.error(
+                            "❌ Futures ke liye old Binance Sandbox/Testnet use nahi karo. "
+                            "Account Environment me **Demo Trading** select karo aur Binance Futures Demo API keys use karo."
+                        )
+                    else:
+                        st.error(f"❌ Connection failed: {err_txt[:500]}")
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with col2:
+        st.markdown("<div class='crypto-card apex-blue-glow'>", unsafe_allow_html=True)
+        st.subheader("🔐 Connection Guide")
+
+        if env_choice == "Demo Trading":
+            st.markdown(
+                "**Demo mode:**\n"
+                "- Binance Demo Trading se API key + secret generate karo.\n"
+                "- **Spot:** `demo-api.binance.com`\n"
+                "- **USD-M Futures:** `demo-fapi.binance.com`\n"
+                "- Demo keys ko Live mode me use mat karo."
+            )
+            st.info("Demo Trading simulated funds use karta hai; real funds place nahi hote.")
+        else:
+            st.markdown(
+                "**Live mode:**\n"
+                "- Live Binance API Management se key + secret banao.\n"
+                "- Trading permission sirf zaroorat ke mutabiq ON karo.\n"
+                "- Withdrawal permission OFF rakho.\n"
+                "- Server IP whitelist karna recommended hai."
+            )
+            st.warning("⚠️ Live mode real orders place kar sakta hai.")
+
+        connected_now = bool(ex_cfg.get("connected")) and bool(ex_cfg.get("key"))
+        saved_env = _exchange_environment(ex_cfg)
+        status_color = "#0ecb81" if connected_now else "#f6465d"
+        status_text = "CONNECTED" if connected_now else "NOT CONNECTED"
+        st.markdown(
+            f"<div style='margin-top:16px;padding:14px;border:1px solid #2b313a;border-radius:12px;"
+            f"background:linear-gradient(180deg,#12171e,#0f1318);'>"
+            f"<div style='color:#848e9c;font-size:11px;letter-spacing:.8px;'>CURRENT STATUS</div>"
+            f"<div style='color:{status_color};font-size:18px;font-weight:800;margin-top:4px;'>● {status_text}</div>"
+            f"<div style='color:#9aa4b2;font-size:12px;margin-top:7px;'>"
+            f"{ex_cfg.get('name','Binance')} · {ex_cfg.get('market','Spot')} · {saved_env}"
+            f"</div></div>",
+            unsafe_allow_html=True
+        )
+
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
@@ -4578,7 +4814,7 @@ elif config_menu == "📦 Limitation & Campaign":
                     "✅ Apex Trading — Test Email",
                     "<html><body style='font-family:Arial;background:#0b0e11;color:#eaecef;padding:20px;'>"
                     "<h2 style='color:#fcd535;'>Test email successful!</h2>"
-                    "<p>Agar aapko ye email mila hai, matlab SMTP settings bilkul sahi hain.</p>"
+                    "<p>Agar aapko ye email mila hai, matlab Brevo HTTPS email settings bilkul sahi hain.</p>"
                     "</body></html>",
                     email_cfg
                 )
@@ -4586,7 +4822,7 @@ elif config_menu == "📦 Limitation & Campaign":
                 st.success("✅ Test email bhej diya gaya! Apna inbox (aur Spam folder) check karo.")
             else:
                 st.error("❌ Test email fail hua. Exact error dekhne ke liye Dashboard → 📜 Bot Logs kholo — "
-                         "wahan Gmail ka asli error message milega (jaise galat App Password, ya 2-Step Verification off).")
+                         "wahan Brevo API ka asli error message milega.")
 
     if st.button("💾 Save Limits & Notifications", type="primary", use_container_width=True):
         save_db(db); st.success("✅ Saved successfully!")
@@ -4617,11 +4853,22 @@ else:
     if dash_tab == "📊 Analytics":
         ex_status_cfg = user_settings.get("exchange", {})
         is_connected = bool(ex_status_cfg.get("connected")) and bool(ex_status_cfg.get("key"))
+        saved_env = _exchange_environment(ex_status_cfg)
         if is_connected:
-            st.markdown("<div class='crypto-card'>🟢 <b>Exchange Status:</b> Connected — Automated mode CAN place real orders.</div>", unsafe_allow_html=True)
+            env_label = "🔵 Demo Trading" if saved_env == "Demo Trading" else "🟢 Live Account"
+            st.markdown(
+                f"<div class='crypto-card apex-blue-glow'>"
+                f"🟢 <b>Exchange Status:</b> Connected · <b>{env_label}</b> — "
+                f"Automated mode CAN place orders in the selected environment.</div>",
+                unsafe_allow_html=True
+            )
         else:
-            st.markdown("<div class='crypto-card'>🔴 <b>Exchange Status:</b> NOT connected (or API key missing). "
-                        "Bot signals to banata rahega par tab tak real order NAHI karega jab tak <b>Exchange Integration</b> me connect na karo.</div>", unsafe_allow_html=True)
+            st.markdown(
+                "<div class='crypto-card'>🔴 <b>Exchange Status:</b> NOT connected (or API key missing). "
+                "Bot signals bana sakta hai, lekin real/demo order tab tak nahi jayega jab tak "
+                "<b>Exchange Integration</b> me API verify na ho.</div>",
+                unsafe_allow_html=True
+            )
 
         st.markdown("<div class='crypto-card' style='border-left:4px solid #0ecb81;'>✅ <b>Bot ab background me chalta hai:</b> "
                     "Start karne ke baad browser tab band karo, phone lock karo, PC bhi band kar do — bot chalta rahega jab tak "
