@@ -2407,6 +2407,7 @@
 
 
 
+
 import streamlit as st
 import ccxt
 import pandas as pd
@@ -2417,12 +2418,12 @@ import json
 import hashlib
 import hmac
 import secrets
-import threading
 import socket
-import ssl
-import http.client
+import smtplib
 import urllib.request
 import urllib.error
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime, date
 
 # Optional strong encryption for API keys (pip install cryptography)
@@ -2453,12 +2454,11 @@ st.markdown("""
     }
 
     .stApp {
-         background:
-             radial-gradient(circle at 10% 0%, rgba(252,213,53,0.055), transparent 30%),
-             radial-gradient(circle at 92% 18%, rgba(59,130,246,0.055), transparent 30%),
-             radial-gradient(circle at 88% 100%, rgba(14,203,129,0.045), transparent 36%),
-             #0b0e11;
-         color: #eaecef;
+        background:
+            radial-gradient(circle at 12% 0%, rgba(252,213,53,0.06), transparent 32%),
+            radial-gradient(circle at 88% 100%, rgba(14,203,129,0.05), transparent 38%),
+            #0b0e11;
+        color: #eaecef;
     }
 
     .block-container { padding-top: 1.6rem; padding-bottom: 3rem; }
@@ -2474,10 +2474,8 @@ st.markdown("""
     }
 
     .crypto-card {
-        background: linear-gradient(150deg, rgba(24,26,32,0.72) 0%, rgba(18,20,24,0.72) 100%);
-        backdrop-filter: blur(14px) saturate(120%);
-        -webkit-backdrop-filter: blur(14px) saturate(120%);
-        border: 1px solid rgba(58,69,82,0.45);
+        background: linear-gradient(150deg, #181a20 0%, #121418 100%);
+        border: 1px solid #2b313a;
         border-radius: 14px;
         padding: 20px;
         margin-bottom: 15px;
@@ -2486,21 +2484,6 @@ st.markdown("""
         transition: border-color 0.2s ease, transform 0.2s ease;
     }
     .crypto-card:hover { border-color: #3a4552; }
-    .apex-blue-glow {
-         border: 1px solid rgba(59,130,246,0.30);
-         box-shadow: 0 0 0 1px rgba(59,130,246,0.04), 0 12px 32px rgba(37,99,235,0.08);
-    }
-    .apex-section-title {
-         display:flex; align-items:center; gap:10px;
-         color:#eaecef; font-weight:800;
-    }
-    .apex-section-title .dot {
-         width:8px; height:8px; border-radius:50%;
-         background:#3b82f6; box-shadow:0 0 12px rgba(59,130,246,0.65);
-         display:inline-block;
-    }
-    .apex-env-live { color:#0ecb81; font-weight:800; }
-    .apex-env-demo { color:#3b82f6; font-weight:800; }
 
     .badge-live {
         background-color: rgba(14, 203, 129, 0.15);
@@ -2536,10 +2519,8 @@ st.markdown("""
     .rule-tag:hover { background:#0ecb8140; }
 
     .sig-card {
-        background: linear-gradient(180deg, rgba(24,26,32,0.72) 0%, rgba(19,21,25,0.72) 100%);
-        backdrop-filter: blur(14px) saturate(120%);
-        -webkit-backdrop-filter: blur(14px) saturate(120%);
-        border: 1px solid rgba(43,49,58,0.6);
+        background: linear-gradient(180deg,#181a20 0%, #131519 100%);
+        border: 1px solid #2b313a;
         border-left: 4px solid #fcd535;
         border-radius: 14px;
         padding: 16px 20px;
@@ -2550,10 +2531,8 @@ st.markdown("""
     .sig-card:hover { transform: translateY(-2px); border-color: #3a4552; }
 
     .trade-card {
-        background: linear-gradient(180deg, rgba(24,26,32,0.72) 0%, rgba(19,21,25,0.72) 100%);
-        backdrop-filter: blur(14px) saturate(120%);
-        -webkit-backdrop-filter: blur(14px) saturate(120%);
-        border: 1px solid rgba(43,49,58,0.6);
+        background: linear-gradient(180deg,#181a20 0%, #131519 100%);
+        border: 1px solid #2b313a;
         border-left: 4px solid #0ecb81;
         border-radius: 14px;
         padding: 16px 20px;
@@ -2563,7 +2542,6 @@ st.markdown("""
     }
     .trade-card:hover { transform: translateY(-2px); border-color: #3a4552; }
 
-    .kv-row { display:flex; flex-wrap:wrap; row-gap:10px; column-gap:22px; }
     .kv { display:inline-block; margin-right:20px; }
     .kv .k { color:#848e9c; font-size:11px; letter-spacing:.4px; display:block; margin-bottom:2px; }
     .kv .v { font-size:15px; font-weight:700; }
@@ -2594,152 +2572,8 @@ st.markdown("""
     [data-testid="stDataFrame"] { border: 1px solid #2b313a; border-radius: 12px; overflow: hidden; }
 
     section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, rgba(12,16,21,0.88) 0%, rgba(9,12,16,0.92) 100%);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        background: linear-gradient(180deg, #0c1015 0%, #090c10 100%);
         border-right: 1px solid #20262e;
-    }
-
-    /* ==========================================
-       MOBILE / SMALL-SCREEN RESPONSIVE TUNING
-       (sirf spacing/sizing — koi functionality nahi badli)
-       ========================================== */
-    @media (max-width: 900px) {
-        .block-container { padding-left: 1rem; padding-right: 1rem; padding-top: 1.1rem; padding-bottom: 2rem; }
-        .crypto-card, .sig-card, .trade-card { padding: 15px 16px; border-radius: 12px; margin-bottom: 12px; }
-        .sym-title { font-size: 16px; }
-        .kv { margin-right: 0; }
-        .kv .k { font-size: 10px; }
-        .kv .v { font-size: 13px; }
-        h1 { font-size: 21px !important; }
-        h2 { font-size: 18px !important; }
-        h3, .stMarkdown h3 { font-size: 16px !important; }
-        div[data-baseweb="tab-list"] { overflow-x: auto; flex-wrap: nowrap !important; -webkit-overflow-scrolling: touch; }
-        button[data-baseweb="tab"] { font-size: 12px; padding: 8px 10px !important; white-space: nowrap; }
-        div[role="radiogroup"] { flex-wrap: wrap !important; row-gap: 8px !important; column-gap: 8px !important; }
-        div[role="radiogroup"] label { font-size: 12.5px !important; padding: 3px 4px !important; }
-        .stButton > button { min-height: 44px; font-size: 13.5px; width: 100%; }
-        [data-testid="column"] { padding-left: 4px !important; padding-right: 4px !important; }
-        [data-testid="stMetricValue"] { font-size: 18px !important; }
-        [data-testid="stMetricLabel"] { font-size: 11px !important; }
-    }
-    @media (max-width: 480px) {
-        .crypto-card, .sig-card, .trade-card { padding: 13px 14px; }
-        .sym-title { font-size: 14.5px; }
-        .kv .v { font-size: 12.5px; }
-        .badge-live, .badge-signal { font-size: 10.5px; padding: 3px 9px; }
-    }
-
-    /* ==========================================
-       GLOBAL RADIO -> PILL / NAV STYLE
-       (Streamlit ke default radio circles hata kar clean
-       clickable nav-items / pills banate hain — sidebar
-       menu, dashboard tabs, exec-mode, market-type sab par)
-       ========================================== */
-    div[role="radiogroup"] { row-gap: 8px; }
-    div[role="radiogroup"] > label {
-        cursor: pointer;
-        transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
-    }
-    div[role="radiogroup"] > label > div:first-child { display: none !important; }
-
-    /* Horizontal pill-style groups (dashboard tabs, exec mode, market type, login sub-tabs) */
-    div[data-testid="stRadio"] div[role="radiogroup"][aria-orientation="horizontal"] > label {
-        background: #12161b;
-        border: 1px solid #232a33;
-        border-radius: 20px;
-        padding: 7px 16px !important;
-        margin: 0 6px 6px 0 !important;
-    }
-    div[data-testid="stRadio"] div[role="radiogroup"][aria-orientation="horizontal"] > label:hover {
-        border-color: #52606e;
-    }
-    div[data-testid="stRadio"] div[role="radiogroup"][aria-orientation="horizontal"] > label:has(input:checked) {
-        background: linear-gradient(90deg, rgba(14,203,129,0.18), rgba(14,203,129,0.05));
-        border-color: #0ecb81;
-    }
-    div[data-testid="stRadio"] div[role="radiogroup"][aria-orientation="horizontal"] > label:has(input:checked) p {
-        color: #0ecb81 !important;
-        font-weight: 700 !important;
-    }
-
-    /* Sidebar main navigation — vertical list, distinct highlighted "active page" look */
-    section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-    section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] > label {
-        background: #12161b;
-        border: 1px solid #222831;
-        border-radius: 10px;
-        padding: 11px 14px !important;
-        margin: 0 !important;
-        width: 100%;
-    }
-    section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] > label:hover {
-        background: #171d25;
-        border-color: #3a4552;
-        transform: translateX(2px);
-    }
-    section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) {
-        background: linear-gradient(90deg, rgba(252,213,53,0.16), rgba(252,213,53,0.03));
-        border-color: #fcd535;
-        border-left: 3px solid #fcd535;
-    }
-    section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) p {
-        color: #fcd535 !important;
-        font-weight: 700 !important;
-    }
-    section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] > label p {
-        font-size: 14px;
-        margin: 0 !important;
-    }
-
-    /* Sidebar section captions (NAVIGATION / etc.) */
-    .apex-side-caption {
-        color: #5b6672; font-size: 10.5px; font-weight: 700; letter-spacing: 1px;
-        margin: 2px 0 8px 2px; text-transform: uppercase;
-    }
-
-    /* Consistent vertical rhythm across cards/sections everywhere */
-    .crypto-card, .sig-card, .trade-card { line-height: 1.5; }
-    .stApp [data-testid="stVerticalBlock"] > div:has(> .crypto-card) { margin-bottom: 2px; }
-
-    /* Dashboard header — icon + text alignment, clean stacking on small screens */
-    .apex-header-icon {
-        font-size: 26px; line-height: 1; margin-right: 8px; vertical-align: -3px;
-    }
-    @media (max-width: 900px) {
-        .apex-header-icon { font-size: 21px; margin-right: 6px; }
-        [data-testid="stMetric"] { text-align: center; }
-        h1 .apex-header-icon, h2 .apex-header-icon, h3 .apex-header-icon { display: inline-block; }
-        /* Sidebar top logo + user card: mobile me chhota aur clean */
-        section[data-testid="stSidebar"] .stImage, section[data-testid="stSidebar"] img { max-width: 110px !important; margin: 0 auto; display: block; }
-        /* Selectbox (Candle Timeframe, Exchange select etc.) mobile me full-width + clean */
-        div[data-baseweb="select"] > div { min-height: 44px !important; }
-        /* Dashboard analytics card: mobile me 2x2 grid ke bajaye 1x4 stack better */
-        [data-testid="stHorizontalBlock"]:has(> [data-testid="column"]:nth-child(4)) {
-            /* Let streamlit handle, but tune spacing */
-            row-gap: 10px;
-        }
-        [data-testid="stMetric"] {
-            padding: 10px 8px; border-radius: 10px;
-            background: linear-gradient(180deg, #13171c 0%, #0f1318 100%);
-            border: 1px solid #242b34;
-        }
-    }
-    @media (max-width: 600px) {
-        /* small phones: metric font sizes */
-        [data-testid="stMetric"] [data-testid="stMetricValue"] { font-size: 17px !important; }
-        [data-testid="stMetric"] [data-testid="stMetricDelta"] { font-size: 11px !important; }
-        h1 { font-size: 20px !important; line-height: 1.3 !important; }
-        h2 { font-size: 17px !important; line-height: 1.3 !important; }
-        .block-container { padding-top: 0.9rem; }
-        /* start/stop buttons me text thoda chhota lekin full tap area */
-        .stButton > button { padding: 0 12px !important; font-size: 13px !important; letter-spacing: .2px; }
-        /* Login/signup cards: side padding kam */
-        .stApp > header { display: none !important; } /* hide streamlit default header for cleaner app */
     }
     </style>
 """, unsafe_allow_html=True)
@@ -2837,8 +2671,8 @@ def verify_password(pw, stored):
 # DATABASE
 # ==========================================
 DEFAULT_MANUAL_STRATEGY = {
-    "timeframe": "1h", "timeframes": ["1h"], "multi_tf_enabled": False,
-    "ma_enabled": False, "ma_periods": [], "ma_logic": "AND",
+    "timeframe": "1h",
+    "ma_enabled": False, "ma_periods": [],
     "rsi_enabled": False, "rsi_min": 30, "rsi_max": 45,
     "sr_enabled": False, "sr_lookback": 50, "sr_tolerance_pct": 1.0,
     "ob_enabled": False, "ob_lookback": 50,
@@ -2861,7 +2695,7 @@ USER_BUCKETS = ["active_trades", "trade_history", "signals_feed", "signal_histor
 
 def _blank_user_settings():
     return {
-        "exchange": {"name": "Binance", "market": "Spot", "key": "", "secret": "", "demo": True, "environment": "Demo Trading", "connected": False},
+        "exchange": {"name": "Binance", "market": "Spot", "key": "", "secret": "", "demo": True, "connected": False},
         "strategy": {
             "mode": "manual",
             "exec_mode": "Automated Trading (Bot takes trades & sets TP/SL automatically)",
@@ -2873,7 +2707,6 @@ def _blank_user_settings():
         "filters": dict(DEFAULT_FILTERS),
         "runtime": dict(DEFAULT_RUNTIME),
         "email": {"enabled": True, "sender": "", "receiver": "", "brevo_api_key": ""},
-        "bot_active": False,   # DB me persistent flag — asli "bot on/off" state (session/tab se independent)
         "active_trades": [], "trade_history": [], "signals_feed": [], "signal_history": [], "logs": []
     }
 
@@ -2884,30 +2717,10 @@ def _backfill_user(cfg):
     strat.setdefault("manual", dict(DEFAULT_MANUAL_STRATEGY))
     for k, v in DEFAULT_MANUAL_STRATEGY.items():
         strat["manual"].setdefault(k, v)
-    # purana "timeframe" (single) tha -> naya "timeframes" (list, multi-select) me migrate karo
-    if not strat["manual"].get("timeframes"):
-        old_tf = strat["manual"].get("timeframe", "1h")
-        strat["manual"]["timeframes"] = [old_tf] if old_tf else ["1h"]
-    strat["manual"].setdefault("ma_logic", "AND")
     strat.setdefault("ai_prompt", "")
     strat.setdefault("sl_pct", 2.0)
     strat.setdefault("tp_pct", 4.5)
-    cfg.setdefault("bot_active", False)
-
-    # Exchange config migration: old versions used only demo=True/False.
-    ex_cfg = cfg.setdefault("exchange", {
-        "name": "Binance", "market": "Spot", "key": "", "secret": "",
-        "demo": True, "environment": "Demo Trading", "connected": False
-    })
-    ex_cfg.setdefault("name", "Binance")
-    ex_cfg.setdefault("market", "Spot")
-    ex_cfg.setdefault("key", "")
-    ex_cfg.setdefault("secret", "")
-    ex_cfg.setdefault("connected", False)
-    if ex_cfg.get("environment") not in ("Live", "Demo Trading", "Sandbox / Testnet"):
-        ex_cfg["environment"] = "Demo Trading" if bool(ex_cfg.get("demo", True)) else "Live"
-    ex_cfg["demo"] = ex_cfg.get("environment") == "Demo Trading"
-
+    cfg.setdefault("exchange", {"name": "Binance", "market": "Spot", "key": "", "secret": "", "demo": True, "connected": False})
     cfg.setdefault("limits", {"campaign_days": 1, "daily_limit": 1, "trade_amount": 100.0})
     flt = cfg.setdefault("filters", dict(DEFAULT_FILTERS))
     for k, v in DEFAULT_FILTERS.items():
@@ -3016,476 +2829,39 @@ def try_reserve_slot(curr_user, chosen_coin, daily_lim, is_signal_only, min_gap=
         now = time.time()
         if now - float(rtf.get("last_action_epoch", 0)) < min_gap:
             return False, "cooldown", fresh
-        active_syms = {t.get("Symbol", "") for t in (us.get("active_trades") or []) if t.get("Symbol")}
-        if (not is_signal_only) and chosen_coin in active_syms:
-            return False, "coin already has an open trade", fresh
+        if chosen_coin in rtf["traded_coins_today"]:
+            return False, "coin already used today", fresh
         if not is_signal_only:
             if rtf["trades_today"] >= daily_lim:
                 return False, "limit reached", fresh
             rtf["trades_today"] += 1
         else:
             rtf["signals_today"] += 1
+        rtf["traded_coins_today"].append(chosen_coin)
         rtf["last_action_epoch"] = now
         save_db(fresh)
         return True, "reserved", fresh
     finally:
         release_lock(lock)
 
-
-def rollback_reserved_slot(username, chosen_coin, is_signal_only):
-    """Buy fail / exchange not connected — daily slot wapas, ghost trade na bane."""
-    lock = acquire_lock()
-    if lock is None:
-        return
-    try:
-        fresh = load_db()
-        us = fresh["settings"].get(username)
-        if us is None:
-            return
-        rtf = get_runtime(us)
-        if is_signal_only:
-            if int(rtf.get("signals_today", 0) or 0) > 0:
-                rtf["signals_today"] = int(rtf["signals_today"]) - 1
-        else:
-            if int(rtf.get("trades_today", 0) or 0) > 0:
-                rtf["trades_today"] = int(rtf["trades_today"]) - 1
-        coins = rtf.get("traded_coins_today") or []
-        if chosen_coin in coins:
-            coins.remove(chosen_coin)
-            rtf["traded_coins_today"] = coins
-        save_db(fresh)
-    finally:
-        release_lock(lock)
-
-
-def _is_futures_market(market):
-    return "Futures" in str(market or "")
-
-
-def _base_from_symbol(sym):
-    s = str(sym or "")
-    if "/" in s:
-        return s.split("/")[0].split(":")[0]
-    return s.split(":")[0]
-
-
-@st.cache_resource
-def get_bot_registry():
-    """Process-wide singleton (Streamlit reruns poori script har interaction par dobara
-    chalata hai, isliye normal global variable har baar reset ho jata — is decorator ki
-    wajah se ye dict/lock HAMESHA wahi ek object rahega, chahe kitni bhi reruns hon)."""
-    return {"threads": {}, "lock": threading.Lock()}
-
-
-def _run_one_bot_cycle(username):
-    """Ek user ke liye bot ka EK scan+trade cycle. Koi Streamlit UI call (st.rerun,
-    st.warning, st.session_state) use NAHI karta — isliye background thread me bhi
-    (bina kisi browser tab ke) chal sakta hai. Returns False = thread ko rukna chahiye."""
-    dbx = load_db()
-    us = dbx["settings"].get(username)
-    if us is None or not us.get("bot_active"):
-        return False
-
-    _backfill_user(us)
-    rt = get_runtime(us)
-    save_db(dbx)
-
-    daily_lim = int(us["limits"].get("daily_limit", 1))
-    exec_mode_setting = us["strategy"].get("exec_mode", "")
-    is_signal_only = "Signal-Only" in exec_mode_setting or "Signal" in exec_mode_setting
-
-    # ---------- PEHLE: Active trades ka TP/SL filled check, PnL settle + history shift ----------
-    monitor_close_active_trades(username)
-    fresh_act = load_db()
-    us2 = fresh_act["settings"].get(username) or us
-    active_syms_now = {t.get("Symbol", "") for t in (us2.get("active_trades", []) or []) if t.get("Symbol")}
-    rt2 = get_runtime(us2)
-
-    if (not is_signal_only) and rt2["trades_today"] >= daily_lim:
-        add_log(f"⏳ Daily auto-trade limit reached ({rt2['trades_today']}/{daily_lim}). Aaj ke liye paused (kal reset).", username)
-        return True
-
-    try:
-        ex_cfg = us2["exchange"]
-        market_m = ex_cfg.get("market", "Spot")
-        # Dynamic exchange factory: Binance/Bybit/OKX/KuCoin koi bhi select ho sahi ccxt object
-        ex = create_exchange(ex_cfg)
-
-        ex.load_markets()
-        flt = us2.get("filters", DEFAULT_FILTERS)
-
-        # Cached tickers use karo — baar-baar API hit nahi, CPU/RAM bachao
-        all_tickers = get_cached_tickers(ex)
-        if all_tickers is None:
-            try:
-                all_tickers = ex.fetch_tickers()
-            except Exception:
-                all_tickers = None
-
-        # ---- FULL UNIVERSE SCAN — koi 25/40 wali cap nahi, jitne bhi coin criteria
-        # (volume/stablecoin/leveraged/delisted filters) pass karein sab scan honge.
-        universe = build_symbol_universe(ex, all_tickers,
-                                         min_volume=int(flt.get("universe_min_volume", 1000000)),
-                                         exclude_bases=flt.get("exclude", []),
-                                         market=market_m)
-        if not universe:
-            excl = {e.upper() for e in flt.get("exclude", [])}
-            if _is_futures_market(market_m):
-                universe = [s for s in (ex.symbols or [])
-                            if (":USDT" in s or s.endswith("/USDT"))
-                            and _base_from_symbol(s).upper() not in STABLE_OR_FIAT
-                            and _base_from_symbol(s).upper() not in excl]
-            else:
-                universe = [s for s in (ex.symbols or [])
-                            if s.endswith('/USDT') and s.split('/')[0].upper() not in STABLE_OR_FIAT
-                            and s.split('/')[0].upper() not in excl]
-        if not universe:
-            universe = ["BTC/USDT:USDT", "ETH/USDT:USDT"] if _is_futures_market(market_m) else ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
-
-        # Open position wale coin skip — close hone ke baad (daily limit bachi ho to) dubara allowed
-        excluded_now = set(active_syms_now) if not is_signal_only else set()
-        available = [c for c in universe if c not in excluded_now]
-        if not available:
-            if active_syms_now and not is_signal_only:
-                add_log(f"🔎 Active positions me {len(active_syms_now)} coin hain — unke close hone tak in par dobara trade nahi. Idling.", username)
-            else:
-                add_log("🔎 Scan universe empty after filters. Idling.", username)
-            return True
-
-        chosen_coin = None; c_price = 0.0; matched_rules_str = ""
-        strategy_mode = "manual"
-        manual_cfg = us2["strategy"]["manual"]
-        candidates = []
-        for coin in available:
-            try:
-                passed, rules = evaluate_manual_strategy(ex, coin, manual_cfg)
-                if passed:
-                    candidates.append((coin, rules))
-            except Exception:
-                continue
-        if candidates:
-            best = None; best_vol = -1
-            for coin, rules in candidates:
-                vol = 0.0
-                if all_tickers and coin in all_tickers:
-                    try: vol = float(all_tickers[coin].get('quoteVolume') or 0)
-                    except Exception: vol = 0.0
-                else:
-                    try: vol = float(ex.fetch_ticker(coin).get('quoteVolume') or 0)
-                    except Exception: vol = 0.0
-                if vol > best_vol:
-                    best_vol = vol; best = (coin, rules)
-            chosen_coin, matched_rules_list = best
-            matched_rules_str = ", ".join(matched_rules_list)
-            try:
-                c_price = float(ex.fetch_ticker(chosen_coin).get('last') or 0.0)
-            except Exception:
-                c_price = 0.0
-        else:
-            add_log("🔎 Manual scan complete — koi coin saari ticked conditions match nahi kar raha. Idling.", username)
-
-        if chosen_coin is None:
-            return True
-
-        ok, reason, dbx3 = try_reserve_slot(username, chosen_coin, daily_lim, is_signal_only)
-        us3 = dbx3["settings"][username]
-        rt3 = get_runtime(us3)
-
-        if ok and not is_signal_only and rt3["trades_today"] > daily_lim:
-            rt3["trades_today"] = daily_lim
-            if chosen_coin in rt3["traded_coins_today"]:
-                rt3["traded_coins_today"].remove(chosen_coin)
-            save_db(dbx3)
-            add_log(f"🛡️ Safety rollback: {chosen_coin} reservation undo ki gayi (limit {daily_lim} already reached tha).", username)
-            ok = False
-            reason = "limit reached"
-
-        if not ok:
-            if reason == "limit reached":
-                add_log(f"⏳ Limit reached ({rt3['trades_today']}/{daily_lim}) — {chosen_coin} skip. Paused for today.", username)
-            else:
-                add_log(f"↩️ {chosen_coin} skip ({reason}). Agla coin dekhenge.", username)
-            return True
-
-        if c_price <= 0:
-            try:
-                ohlcv = ex.fetch_ohlcv(chosen_coin, timeframe='1m', limit=1)
-                if ohlcv: c_price = float(ohlcv[0][4])
-            except Exception:
-                c_price = 1.0
-
-        amt_usdt = float(us3["limits"]["trade_amount"])
-        try:
-            coin_qty = float(ex.amount_to_precision(chosen_coin, amt_usdt / c_price))
-        except Exception:
-            coin_qty = amt_usdt / c_price
-
-        tp_p = us3["strategy"]["tp_pct"]; sl_p = us3["strategy"]["sl_pct"]
-        tp_val = c_price * (1 + tp_p / 100); sl_val = c_price * (1 - sl_p / 100)
-
-        current_time_str = datetime.now().strftime("%I:%M:%S %p")
-        full_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        timestamp_epoch = datetime.now().timestamp()
-
-        new_signal = {
-            "id": f"{chosen_coin}_{int(timestamp_epoch)}",
-            "time": current_time_str, "full_timestamp": full_ts, "timestamp_epoch": timestamp_epoch,
-            "symbol": chosen_coin,
-            "strategy": "Manual Rule Engine" if strategy_mode == "manual" else "AI Prompt Engine",
-            "rules": matched_rules_str, "entry": c_price, "tp": tp_val, "sl": sl_val,
-            "type": "Signal Only" if is_signal_only else "Executed Trade"
-        }
-
-        # ---- signal record save (apna alag lock — try_reserve_slot ka lock already release ho chuka hai) ----
-        lock2 = acquire_lock()
-        try:
-            dbx4 = load_db()
-            us4 = dbx4["settings"].get(username)
-            if us4 is not None:
-                us_feed = us4.setdefault("signals_feed", [])
-                us_hist = us4.setdefault("signal_history", [])
-                active_signals = []
-                for sig in us_feed:
-                    if (timestamp_epoch - sig.get("timestamp_epoch", timestamp_epoch)) >= 86400:
-                        if sig not in us_hist:
-                            us_hist.insert(0, sig)
-                    else:
-                        active_signals.append(sig)
-                active_signals.insert(0, new_signal)
-                us4["signals_feed"] = active_signals
-                save_db(dbx4)
-        finally:
-            if lock2 is not None:
-                release_lock(lock2)
-
-        email_cfg = us3.get("email", {})
-        if email_cfg.get("enabled"):
-            email_sub = f"🚨 [Apex Trading] {'Signal Generated' if is_signal_only else 'Trade Executed'}: {chosen_coin}"
-            email_body_html = f"""
-            <html><body style="font-family: Arial, sans-serif; background-color: #0b0e11; color: #eaecef; padding: 20px;">
-                <div style="max-width: 600px; margin: auto; background: #181a20; border: 1px solid #2b313a; border-radius: 12px; padding: 25px;">
-                    <h2 style="color: #fcd535; margin-top: 0; text-align: center;">⚡ Apex Automated Alert</h2>
-                    <p style="color: #0ecb81; text-align: center; font-weight: bold;">Status: Strategy conditions successfully met!</p>
-                    <p style="color: #848e9c; text-align:center; font-size:12px;">Matched rules: {matched_rules_str or "N/A"}</p>
-                    <hr style="border: 0; border-top: 1px solid #2b313a; margin: 20px 0;">
-                    <table style="width: 100%; font-size: 14px; color: #eaecef; border-collapse: collapse;">
-                        <tr><td style="padding: 8px 0; color: #848e9c;">Trading Pair:</td><td style="padding: 8px 0; font-weight: bold; color: #fcd535; text-align: right;">{chosen_coin}</td></tr>
-                        <tr><td style="padding: 8px 0; color: #848e9c;">Market Type:</td><td style="padding: 8px 0; font-weight: bold; text-align: right;">{market_m}</td></tr>
-                        <tr><td style="padding: 8px 0; color: #848e9c;">Entry Price:</td><td style="padding: 8px 0; font-weight: bold; color: #3b82f6; text-align: right;">${c_price:,.6f}</td></tr>
-                        <tr><td style="padding: 8px 0; color: #848e9c;">Take Profit (TP):</td><td style="padding: 8px 0; font-weight: bold; color: #0ecb81; text-align: right;">${tp_val:,.6f} (+{tp_p}%)</td></tr>
-                        <tr><td style="padding: 8px 0; color: #848e9c;">Stop Loss (SL):</td><td style="padding: 8px 0; font-weight: bold; color: #f6465d; text-align: right;">${sl_val:,.6f} (-{sl_p}%)</td></tr>
-                        <tr><td style="padding: 8px 0; color: #848e9c;">Allocated Amount:</td><td style="padding: 8px 0; font-weight: bold; text-align: right;">${amt_usdt} USDT</td></tr>
-                    </table>
-                </div></body></html>"""
-            send_email_alert(email_sub, email_body_html, email_cfg)
-
-        if is_signal_only:
-            add_log(f"📡 Signal #{rt3['signals_today']} generated for {chosen_coin} (rules: {matched_rules_str}).", username)
-            return True
-
-        # -------- AUTO TRADE (Spot path aur Futures path alag — mix nahi) --------
-        placed_ok = False
-        if "Automated Trading" in exec_mode_setting:
-            if not (ex_cfg.get("connected") and ex_cfg.get("key")):
-                add_log(f"⚠️ {chosen_coin}: exchange not connected — signal recorded, koi live order nahi. Slot rollback.", username)
-                rollback_reserved_slot(username, chosen_coin, is_signal_only)
-            elif market_m == "Spot" and _is_futures_market(market_m):
-                add_log("⚠️ Market setting inconsistent — order skip.", username)
-                rollback_reserved_slot(username, chosen_coin, is_signal_only)
-            else:
-                if _is_futures_market(market_m):
-                    try:
-                        ex.set_leverage(FUTURES_SAFE_LEVERAGE, chosen_coin)
-                        add_log(f"🛡️ Futures leverage set — {chosen_coin} @ {FUTURES_SAFE_LEVERAGE}x", username)
-                    except Exception as _lv_err:
-                        add_log(f"⚠️ Futures leverage set note ({chosen_coin}): {str(_lv_err)[:80]}", username)
-                    try:
-                        set_margin_fn = getattr(ex, "set_margin_mode", None)
-                        if callable(set_margin_fn):
-                            set_margin_fn(FUTURES_MARGIN_MODE, chosen_coin)
-                    except Exception as _mg_err:
-                        add_log(f"⚠️ Futures margin note ({chosen_coin}): {str(_mg_err)[:80]}", username)
-
-                try:
-                    formatted_tp_price = float(ex.price_to_precision(chosen_coin, tp_val))
-                    formatted_sl_price = float(ex.price_to_precision(chosen_coin, sl_val))
-                except Exception:
-                    formatted_tp_price = tp_val; formatted_sl_price = sl_val
-
-                if market_m == "Spot" and not _is_futures_market(market_m):
-                    try:
-                        buy_res = ex.create_market_buy_order(chosen_coin, coin_qty)
-                        placed_ok = True
-                        add_log(f"✅ Spot Market Buy Executed for {chosen_coin} (rules: {matched_rules_str})", username)
-                    except Exception as buy_err:
-                        add_log(f"❌ Buy Order Error: {str(buy_err)[:180]}", username); buy_res = None
-                    if buy_res:
-                        time.sleep(1.5)
-                        base_ccy = _base_from_symbol(chosen_coin); sell_qty = coin_qty
-                        try:
-                            bal = ex.fetch_balance()
-                            free_amt = float(bal['free'].get(base_ccy, 0) or 0)
-                            if free_amt > 0: sell_qty = free_amt
-                        except Exception: pass
-                        try: sell_qty = float(ex.amount_to_precision(chosen_coin, sell_qty))
-                        except Exception: pass
-                        try: sl_limit_price = float(ex.price_to_precision(chosen_coin, sl_val * 0.997))
-                        except Exception: sl_limit_price = formatted_sl_price
-                        oco_done = False
-                        oco_fn = getattr(ex, 'private_post_order_oco', None)
-                        if oco_fn is not None:
-                            try:
-                                oco_sym = chosen_coin.replace('/', '').replace(':USDT', '')
-                                oco_fn({'symbol': oco_sym, 'side': 'SELL',
-                                        'quantity': ex.amount_to_precision(chosen_coin, sell_qty),
-                                        'price': ex.price_to_precision(chosen_coin, formatted_tp_price),
-                                        'stopPrice': ex.price_to_precision(chosen_coin, formatted_sl_price),
-                                        'stopLimitPrice': ex.price_to_precision(chosen_coin, sl_limit_price),
-                                        'stopLimitTimeInForce': 'GTC'})
-                                add_log(f"🛡️ OCO placed — TP ${formatted_tp_price} / SL ${formatted_sl_price}", username)
-                                oco_done = True
-                            except Exception as oco_err:
-                                add_log(f"⚠️ OCO not available ({str(oco_err)[:70]}), trying separate SL/TP...", username)
-                        if not oco_done:
-                            try:
-                                ex.create_order(chosen_coin, 'STOP_LOSS_LIMIT', 'sell', sell_qty, sl_limit_price, {'stopPrice': formatted_sl_price})
-                                add_log(f"🛡️ Stop Loss placed at trigger ${formatted_sl_price}", username)
-                            except Exception:
-                                try:
-                                    ex.create_order(chosen_coin, 'STOP_LOSS', 'sell', sell_qty, None, {'stopPrice': formatted_sl_price})
-                                    add_log(f"🛡️ Stop Loss (Market) placed at trigger ${formatted_sl_price}", username)
-                                except Exception as sl_fallback_err:
-                                    add_log(f"⚠️ Stop Loss Order Warning: {str(sl_fallback_err)[:120]}", username)
-                            try:
-                                bal2 = ex.fetch_balance()
-                                free2 = float(bal2['free'].get(base_ccy, 0) or 0)
-                                tp_qty = float(ex.amount_to_precision(chosen_coin, free2)) if free2 > 0 else 0
-                                if tp_qty > 0:
-                                    ex.create_limit_sell_order(chosen_coin, tp_qty, formatted_tp_price)
-                                    add_log(f"🎯 Take Profit placed at ${formatted_tp_price}", username)
-                            except Exception as tp_err:
-                                add_log(f"⚠️ TP Order Warning: {str(tp_err)[:120]}", username)
-                elif _is_futures_market(market_m):
-                    try:
-                        ex.create_market_buy_order(chosen_coin, coin_qty)
-                        placed_ok = True
-                        add_log(f"✅ Futures Market Buy executed for {chosen_coin} (rules: {matched_rules_str})", username)
-                    except Exception as fut_buy_err:
-                        add_log(f"❌ Futures Buy Error: {str(fut_buy_err)[:180]}", username)
-                    if placed_ok:
-                        try:
-                            time.sleep(1)
-                            ex.create_order(chosen_coin, 'TAKE_PROFIT_MARKET', 'sell', coin_qty, None, {'stopPrice': formatted_tp_price, 'reduceOnly': True})
-                            add_log(f"🎯 Futures Take Profit set at ${formatted_tp_price}", username)
-                            ex.create_order(chosen_coin, 'STOP_MARKET', 'sell', coin_qty, None, {'stopPrice': formatted_sl_price, 'reduceOnly': True})
-                            add_log(f"🛡️ Futures Stop Loss set at ${formatted_sl_price}", username)
-                        except Exception as fut_err:
-                            add_log(f"⚠️ Futures TP/SL note: {str(fut_err)[:120]}", username)
-                else:
-                    add_log(f"⚠️ Unknown market '{market_m}' — order skip, slot rollback.", username)
-                    rollback_reserved_slot(username, chosen_coin, is_signal_only)
-
-                if not placed_ok and (ex_cfg.get("connected") and ex_cfg.get("key")):
-                    rollback_reserved_slot(username, chosen_coin, is_signal_only)
-
-        if placed_ok:
-            lock3 = acquire_lock()
-            try:
-                dbx5 = load_db()
-                us5 = dbx5["settings"].get(username)
-                if us5 is not None:
-                    us5.setdefault("active_trades", []).append({
-                        "Symbol": chosen_coin, "Market": market_m,
-                        "Entry": f"{c_price:,.6f}", "Amount": f"${amt_usdt}",
-                        "TP": f"{tp_val:,.6f}", "SL": f"{sl_val:,.6f}", "Rules": matched_rules_str
-                    })
-                    save_db(dbx5)
-            finally:
-                if lock3 is not None:
-                    release_lock(lock3)
-            rt_after = get_runtime(load_db()["settings"].get(username) or us3)
-            add_log(f"📊 Auto trade {rt_after.get('trades_today', rt3['trades_today'])}/{daily_lim} done for {chosen_coin}.", username)
-            if int(rt_after.get("trades_today", 0) or 0) >= daily_lim:
-                add_log(f"✅ Aaj ki limit ({daily_lim}) complete. Bot ab naye auto-trade nahi lega — open trades monitor honge.", username)
-
-    except Exception as e:
-        add_log(f"⚠️ Loop Error: {str(e)}", username)
-
-    return True
-
-
-def _bot_thread_main(username):
-    """Ye function EK background thread me chalta hai, jab tak us user ka bot_active
-    True rahe. Kisi bhi browser tab/session se bilkul independent — tab band karo,
-    phone lock karo, PC minimize karo, ye chalta rehta hai jab tak khud STOP na dabao."""
-    add_log("🟢 Background bot thread shuru — ab browser/phone band karne se bhi ye RUKEGA NAHI.", username)
-    while True:
-        try:
-            keep_going = _run_one_bot_cycle(username)
-        except Exception as e:
-            add_log(f"⚠️ Bot thread fatal error: {str(e)}", username)
-            keep_going = True
-        if keep_going is False:
-            break
-        time.sleep(15)
-    add_log("🛑 Background bot thread ruk gaya (Stop Bot dabaya gaya tha).", username)
-
-
-def ensure_all_bot_threads():
-    """Har us user ke liye jiska bot_active=True hai, ek background thread chalao (agar
-    pehle se chal raha ho to dobara nahi). Ye function HAR page-load/interaction par
-    call hota hai (kisi ke bhi) — isliye agar server restart bhi ho jaye, jaise hi
-    koi bhi pehla visitor site kholega, saare active bots khud-ba-khud resume ho jayenge."""
-    registry = get_bot_registry()
-    with registry["lock"]:
-        try:
-            dbx = load_db()
-        except Exception:
-            return
-        for uname, cfg in dbx.get("settings", {}).items():
-            if cfg.get("bot_active"):
-                th = registry["threads"].get(uname)
-                if th is None or not th.is_alive():
-                    t = threading.Thread(target=_bot_thread_main, args=(uname,), daemon=True)
-                    registry["threads"][uname] = t
-                    t.start()
-        for uname in list(registry["threads"].keys()):
-            th = registry["threads"][uname]
-            if not th.is_alive():
-                del registry["threads"][uname]
-
-
 db = load_db()
-ensure_all_bot_threads()
 ACTIVE_USER = None  # login ke baad set hota hai; add_log isi user ke logs me likhta hai
 
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "username" not in st.session_state: st.session_state.username = ""
-# NOTE: bot on/off ab st.session_state me store NAHI hota (wo browser tab ke sath khatam
-# ho jata) — ab DB me `user_settings["bot_active"]` persist hota hai aur ek background
-# thread (ensure_all_bot_threads) isko chalata hai, tab/session se bilkul independent.
+if "bot_running" not in st.session_state: st.session_state.bot_running = False
 
-def add_log(msg, username=None):
-    """Thread-safe log append. Hamesha DISK se fresh load karke likhta hai (file-lock ke
-    sath) taake background bot-threads aur UI ke beech log lines ek dusre ko overwrite
-    na karen — pehle sirf in-memory `db` par likhta tha, jo multi-thread me unsafe tha."""
+def add_log(msg):
     ts = datetime.now().strftime("%H:%M:%S")
     line = f"[{ts}] {msg}"
-    target_user = username or ACTIVE_USER
-    lock = acquire_lock(timeout=5.0)
     try:
-        fresh = load_db()
-        try:
-            if target_user and target_user in fresh.get("settings", {}):
-                fresh["settings"][target_user].setdefault("logs", []).append(line)
-            else:
-                fresh.setdefault("logs", []).append(line)
-        except Exception:
-            fresh.setdefault("logs", []).append(line)
-        save_db(fresh)
-    finally:
-        if lock is not None:
-            release_lock(lock)
+        if ACTIVE_USER and ACTIVE_USER in db.get("settings", {}):
+            db["settings"][ACTIVE_USER].setdefault("logs", []).append(line)
+        else:
+            db.setdefault("logs", []).append(line)
+    except Exception:
+        db.setdefault("logs", []).append(line)
+    save_db(db)
 
 # ------------------------------------------------------------------
 # EMAIL — Brevo HTTPS API (SMTP ports 25/465/587 DigitalOcean par HAMESHA
@@ -3522,26 +2898,9 @@ def send_email_alert(subject, body_html, email_cfg):
         BREVO_API_URL, data=payload, method="POST",
         headers={"api-key": api_key, "Content-Type": "application/json", "Accept": "application/json"}
     )
-    # -------- Thread-safe socket IPv4 swap (EMAIL_LOCK) --------
-    EMAIL_LOCK.acquire()
-    swapped_back = False
-    try:
-        socket.getaddrinfo = _ipv4_only_getaddrinfo
-        swapped_back = False
-    except Exception:
-        pass
+    socket.getaddrinfo = _ipv4_only_getaddrinfo  # is call ke liye IPv4 force (safety, HTTPS ke liye bhi)
     try:
         with urllib.request.urlopen(req, timeout=20) as resp:
-            # WAPAS RESTORE jaldi se — baaki socket ka code (ccxt Binance API) lock chhode hi normal ho jaye
-            try:
-                socket.getaddrinfo = _orig_getaddrinfo
-                swapped_back = True
-            except Exception:
-                pass
-            try:
-                EMAIL_LOCK.release()
-            except Exception:
-                pass
             if 200 <= resp.status < 300:
                 return True
             add_log(f"Email Error: Brevo HTTP {resp.status}")
@@ -3551,22 +2910,15 @@ def send_email_alert(subject, body_html, email_cfg):
             err_body = e.read().decode("utf-8", errors="ignore")
         except Exception:
             err_body = ""
+        # Brevo error body me exact wajah hoti hai — jaise IP authorize nahi,
+        # ya sender email verify nahi, ya key galat. Bot Logs me poora dikhega.
         add_log(f"Email Error: Brevo HTTP {e.code} - {err_body[:300]}")
         return False
     except Exception as e:
         add_log(f"Email Error: {str(e)}")
         return False
     finally:
-        if not swapped_back:
-            try:
-                socket.getaddrinfo = _orig_getaddrinfo
-            except Exception:
-                pass
-        try:
-            if EMAIL_LOCK.locked():
-                EMAIL_LOCK.release()
-        except Exception:
-            pass
+        socket.getaddrinfo = _orig_getaddrinfo  # turant wapas normal
 
 
 # ------------------------------------------------------------------
@@ -3588,43 +2940,23 @@ def _is_leveraged_token(base):
         return True
     return False
 
-def build_symbol_universe(ex, tickers=None, min_volume=1_000_000, top_n=None, exclude_bases=None, market="Spot"):
-    """
-    top_n=None -> koi cap nahi, jitne bhi coin criteria pe fit hon SAB scan honge.
-    Spot select ho to sirf spot USDT pairs; Futures select ho to sirf USDT-M swap.
-    """
+def build_symbol_universe(ex, tickers=None, min_volume=1_000_000, top_n=40, exclude_bases=None):
     exclude_bases = {e.strip().upper() for e in (exclude_bases or []) if e.strip()}
     markets = getattr(ex, "markets", {}) or {}
-    want_futures = _is_futures_market(market)
     universe = []
     for sym, m in markets.items():
         try:
+            if not sym.endswith("/USDT"):
+                continue
             if m.get("active", True) is False:
                 continue
-            base = (m.get("base") or _base_from_symbol(sym)).upper()
+            if m.get("spot", True) is False:
+                continue
+            base = (m.get("base") or sym.split("/")[0]).upper()
             if base in STABLE_OR_FIAT or base in exclude_bases:
                 continue
             if _is_leveraged_token(base):
                 continue
-            quote = (m.get("quote") or "").upper()
-            settle = (m.get("settle") or "").upper()
-            if want_futures:
-                if m.get("spot") is True and not m.get("swap"):
-                    continue
-                if m.get("inverse"):
-                    continue
-                is_usdt_m = bool(m.get("swap")) or bool(m.get("linear"))
-                if not is_usdt_m:
-                    continue
-                if quote != "USDT" and settle != "USDT" and ":USDT" not in str(sym):
-                    continue
-            else:
-                if m.get("spot") is False:
-                    continue
-                if m.get("swap") or m.get("future"):
-                    continue
-                if not str(sym).endswith("/USDT"):
-                    continue
             universe.append(sym)
         except Exception:
             continue
@@ -3641,380 +2973,8 @@ def build_symbol_universe(ex, tickers=None, min_volume=1_000_000, top_n=None, ex
                 scored.append((sym, qv))
         scored.sort(key=lambda x: x[1], reverse=True)
         if scored:
-            ordered = [s for s, _ in scored]
-            return ordered[:top_n] if top_n else ordered
-    return universe[:top_n] if top_n else universe
-
-# ==========================================
-# EXCHANGE FACTORY  (Live + Demo Trading + optional Testnet)
-# ==========================================
-EXCHANGE_LIST = ["Binance", "Bybit", "OKX", "KuCoin"]
-
-# Current Binance non-production REST hosts.
-_BINANCE_DEMO_URLS = {
-    "spot": {
-        "public": "https://demo-api.binance.com/api/v3",
-        "private": "https://demo-api.binance.com/api/v3",
-    },
-    "futures": {
-        "fapiPublic": "https://demo-fapi.binance.com/fapi/v1",
-        "fapiPrivate": "https://demo-fapi.binance.com/fapi/v1",
-        "fapiPublicV2": "https://demo-fapi.binance.com/fapi/v2",
-        "fapiPrivateV2": "https://demo-fapi.binance.com/fapi/v2",
-        "fapiPublicV3": "https://demo-fapi.binance.com/fapi/v3",
-        "fapiPrivateV3": "https://demo-fapi.binance.com/fapi/v3",
-    },
-}
-
-FUTURES_SAFE_LEVERAGE = 3
-FUTURES_MARGIN_MODE = "isolated"
-
-
-def _exchange_environment(ex_cfg):
-    """Normalize old demo=True/False config into an explicit environment."""
-    env = str(ex_cfg.get("environment") or "").strip()
-    if env not in ("Live", "Demo Trading", "Sandbox / Testnet"):
-        env = "Demo Trading" if bool(ex_cfg.get("demo", True)) else "Live"
-    return env
-
-
-def _apply_binance_demo_urls(ex_obj, is_futures):
-    """Fallback for older CCXT builds that do not expose enable_demo_trading()."""
-    try:
-        api = ex_obj.urls.setdefault("api", {})
-        for key, url in _BINANCE_DEMO_URLS["futures" if is_futures else "spot"].items():
-            if key in api:
-                api[key] = url
-    except Exception:
-        pass
-
-
-def _enable_demo_mode(ex_obj, exchange_name, is_futures):
-    """
-    Switch CCXT into the exchange's DEMO environment.
-    This is separate from set_sandbox_mode(): Binance Demo Trading is
-    simulated trading on dedicated demo hosts, not the retired Futures Testnet.
-    """
-    demo_fn = getattr(ex_obj, "enable_demo_trading", None)
-    if callable(demo_fn):
-        try:
-            demo_fn(True)
-            return
-        except TypeError:
-            try:
-                demo_fn()
-                return
-            except Exception:
-                pass
-        except Exception:
-            pass
-
-    if exchange_name.lower() == "binance":
-        _apply_binance_demo_urls(ex_obj, is_futures)
-        return
-
-    raise RuntimeError(
-        f"{exchange_name} Demo Trading is not supported by this installed CCXT version. "
-        f"Update CCXT first: pip install -U ccxt"
-    )
-
-
-def create_exchange(ex_cfg):
-    """
-    ex_cfg:
-      name: Binance / Bybit / OKX / KuCoin
-      market: Spot / Futures (Derivatives)
-      key, secret: API credentials
-      environment: Live / Demo Trading / Sandbox / Testnet
-    """
-    name = (ex_cfg.get("name") or "Binance").strip()
-    market = (ex_cfg.get("market") or "Spot").strip()
-    is_futures = _is_futures_market(market)
-    environment = _exchange_environment(ex_cfg)
-
-    api_key = dec_secret(ex_cfg.get("key", ""))
-    secret = dec_secret(ex_cfg.get("secret", ""))
-
-    ccxt_class_name = name.lower()
-    if not hasattr(ccxt, ccxt_class_name):
-        raise RuntimeError(f"CCXT exchange '{name}' is not available in the installed ccxt package.")
-    cls = getattr(ccxt, ccxt_class_name)
-
-    default_type = "swap" if is_futures else "spot"
-    ex_obj = cls({
-        "apiKey": api_key or "",
-        "secret": secret or "",
-        "enableRateLimit": True,
-        "options": {
-            "defaultType": default_type,
-            "adjustForTimeDifference": True,
-            "defaultSubType": "linear",
-        },
-    })
-
-    if environment == "Demo Trading":
-        _enable_demo_mode(ex_obj, name, is_futures)
-
-    elif environment == "Sandbox / Testnet":
-        if name.lower() == "binance" and is_futures:
-            raise RuntimeError(
-                "Binance USD-M Futures ka purana Testnet endpoint retired hai. "
-                "Futures ke liye 'Demo Trading' select karo aur Binance Demo API keys use karo."
-            )
-        sandbox_fn = getattr(ex_obj, "set_sandbox_mode", None)
-        if not callable(sandbox_fn):
-            raise RuntimeError(
-                f"{name} Sandbox/Testnet is not supported by this installed CCXT version."
-            )
-        sandbox_fn(True)
-
-    # Safe futures defaults. This is applied to both Live and Demo accounts.
-    if is_futures and api_key:
-        for _sym in ["BTC/USDT:USDT", "ETH/USDT:USDT", "BTC/USDT", "ETH/USDT"]:
-            try:
-                ex_obj.set_leverage(FUTURES_SAFE_LEVERAGE, _sym)
-            except Exception:
-                pass
-            try:
-                set_margin_fn = getattr(ex_obj, "set_margin_mode", None)
-                if callable(set_margin_fn):
-                    set_margin_fn(FUTURES_MARGIN_MODE, _sym)
-            except Exception:
-                pass
-
-    return ex_obj
-
-
-# ==========================================
-# UNIVERSE / TICKERS CACHE  (har UNIVERSE_CACHE_TTL seconds me refresh, CPU bachao)
-# ==========================================
-_UNIVERSE_CACHE = {"key": None, "tickers": None, "ts": 0}
-
-def get_cached_tickers(ex):
-    """Cached tickers — exchange/market change par stale data reuse nahi hoga."""
-    global _UNIVERSE_CACHE
-    now = time.time()
-    cache_key = (
-        getattr(ex, "id", "unknown"),
-        str(getattr(ex, "options", {}).get("defaultType", "")),
-        str(getattr(ex, "urls", {}).get("api", {})),
-    )
-    if (
-        _UNIVERSE_CACHE["key"] == cache_key
-        and _UNIVERSE_CACHE["tickers"] is not None
-        and (now - _UNIVERSE_CACHE["ts"]) < UNIVERSE_CACHE_TTL
-    ):
-        return _UNIVERSE_CACHE["tickers"]
-    try:
-        tickers = ex.fetch_tickers()
-        _UNIVERSE_CACHE["key"] = cache_key
-        _UNIVERSE_CACHE["tickers"] = tickers
-        _UNIVERSE_CACHE["ts"] = now
-    except Exception:
-        _UNIVERSE_CACHE["key"] = cache_key
-        _UNIVERSE_CACHE["tickers"] = None
-    return _UNIVERSE_CACHE["tickers"]
-
-
-# ==========================================
-# EMAIL THREAD LOCK  (socket monkeypatch thread-safe banao)
-# ==========================================
-EMAIL_LOCK = threading.Lock()
-
-
-# ==========================================
-# ACTIVE TRADE CLOSED MONITOR + PnL CALCULATOR
-# ==========================================
-def _is_order_filled(ex_obj, sym, order_id_hint=None):
-    """Try best-effort: check recent trades/orders to decide if TP/SL already filled."""
-    try:
-        trades = ex_obj.fetch_my_trades(sym, None, 20)
-        if trades and len(trades) >= 2:
-            return True
-    except Exception:
-        pass
-    return False
-
-def _get_live_price(ex_obj, sym, fallback=0.0):
-    try:
-        return float(ex_obj.fetch_ticker(sym).get("last") or fallback)
-    except Exception:
-        return fallback
-
-def monitor_close_active_trades(username):
-    """
-    Bot cycle ke start me call hota hai:
-    (A) Exchange se check karega ki kisi active trade ka TP/SL hit ho gaya (order filled)
-    (B) Agar user manually exchange se close karde to usko bhi pata chalega
-    (C) Close hone par PnL calculate karke trade_history me shift karega
-    """
-    lock_a = acquire_lock(timeout=7.0)
-    if lock_a is None:
-        return
-    try:
-        fresh = load_db()
-        us = fresh["settings"].get(username)
-        if us is None:
-            return
-        active_list = us.get("active_trades", []) or []
-        if not active_list:
-            return
-        ex_cfg = us.get("exchange") or {}
-        if not (ex_cfg.get("connected") and ex_cfg.get("key")):
-            # Exchange connect nahi — bas price check karke unrealized show; history shift nahi hoga safe
-            return
-        try:
-            ex_obj = create_exchange(ex_cfg)
-        except Exception:
-            return
-        changed = False
-        closed_any = False
-        still_active = []
-        for trade in list(active_list):
-            sym = trade.get("Symbol", "")
-            entry_str = str(trade.get("Entry", "0")).replace(",", "")
-            try:
-                entry_price = float(entry_str)
-            except Exception:
-                entry_price = 0.0
-            amt_str = str(trade.get("Amount", "$0")).replace("$", "").replace(",", "").strip()
-            try:
-                amt_usdt = float(amt_str)
-            except Exception:
-                amt_usdt = 0.0
-            tp_str = str(trade.get("TP", "0")).replace(",", "")
-            sl_str = str(trade.get("SL", "0")).replace(",", "")
-            try:
-                tp_price = float(tp_str)
-                sl_price = float(sl_str)
-            except Exception:
-                tp_price = 0.0
-                sl_price = 0.0
-            live_price = _get_live_price(ex_obj, sym, fallback=0.0)
-
-            tp_hit = (tp_price > 0) and (live_price >= tp_price)
-            sl_hit = (sl_price > 0) and (live_price <= sl_price)
-            order_filled = _is_order_filled(ex_obj, sym)
-            is_closed = tp_hit or sl_hit or order_filled
-
-            close_price_used = live_price if live_price > 0 else entry_price
-            if tp_hit:
-                close_price_used = tp_price
-            elif sl_hit:
-                close_price_used = sl_price
-
-            pnl_val = 0.0
-            pnl_pct = 0.0
-            if entry_price > 0 and close_price_used > 0 and amt_usdt > 0:
-                pnl_pct = ((close_price_used - entry_price) / entry_price) * 100
-                pnl_val = (pnl_pct / 100.0) * amt_usdt
-
-            if is_closed:
-                status_txt = "PROFIT" if pnl_val >= 0 else "LOSS"
-                history_entry = {
-                    "date": str(date.today()),
-                    "time": datetime.now().strftime("%I:%M:%S %p"),
-                    "Symbol": sym,
-                    "Market": trade.get("Market", "Spot"),
-                    "Entry": f"{entry_price:,.6f}",
-                    "Close": f"{close_price_used:,.6f}",
-                    "Amount": f"${amt_usdt:,.2f}",
-                    "PnL%": f"{pnl_pct:+.2f}%",
-                    "pnl_val": pnl_val,
-                    "status": status_txt,
-                    "Reason": ("TP Hit" if tp_hit else ("SL Hit" if sl_hit else "Order Filled/Manually Closed")),
-                    "Rules": trade.get("Rules", ""),
-                }
-                us.setdefault("trade_history", []).insert(0, history_entry)
-                changed = True
-                closed_any = True
-                add_log(f"✅ {sym} closed — {history_entry['Reason']}, PnL ${pnl_val:+,.2f} ({pnl_pct:+.2f}%). Moved to History.", username)
-            else:
-                # Live PnL + current_price update kar do (UI me dikhne ke liye)
-                trade["LivePrice"] = f"{live_price:,.6f}" if live_price > 0 else trade.get("Entry", "0")
-                if entry_price > 0 and live_price > 0 and amt_usdt > 0:
-                    up_pct = ((live_price - entry_price) / entry_price) * 100
-                    up_val = (up_pct / 100.0) * amt_usdt
-                    trade["Unrealized"] = f"{up_val:+,.2f} USD ({up_pct:+.2f}%)"
-                else:
-                    trade["Unrealized"] = trade.get("Unrealized", "—")
-                still_active.append(trade)
-        if changed:
-            us["active_trades"] = still_active
-            save_db(fresh)
-    except Exception as ex_err:
-        try:
-            add_log(f"⚠️ monitor_close_active_trades issue: {str(ex_err)[:180]}", username)
-        except Exception:
-            pass
-    finally:
-        if lock_a is not None:
-            release_lock(lock_a)
-
-
-def manual_close_trade_db(username, trade_index, close_price_override=None):
-    """User 'Close Manually' button dabaye to ye call hota hai — PnL calculate + history shift."""
-    lock_m = acquire_lock(timeout=7.0)
-    if lock_m is None:
-        return False, "Lock busy"
-    try:
-        fresh = load_db()
-        us = fresh["settings"].get(username)
-        if us is None:
-            return False, "User missing"
-        actives = us.get("active_trades", []) or []
-        if trade_index < 0 or trade_index >= len(actives):
-            return False, "Invalid index"
-        trade = actives.pop(trade_index)
-        sym = trade.get("Symbol", "")
-        entry_str = str(trade.get("Entry", "0")).replace(",", "")
-        try:
-            entry_price = float(entry_str)
-        except Exception:
-            entry_price = 0.0
-        amt_str = str(trade.get("Amount", "$0")).replace("$", "").replace(",", "").strip()
-        try:
-            amt_usdt = float(amt_str)
-        except Exception:
-            amt_usdt = 0.0
-        if close_price_override is None or close_price_override <= 0:
-            live_p = 0.0
-            ex_cfg = us.get("exchange") or {}
-            if ex_cfg.get("connected") and ex_cfg.get("key"):
-                try:
-                    ex_obj = create_exchange(ex_cfg)
-                    live_p = _get_live_price(ex_obj, sym, 0.0)
-                except Exception:
-                    live_p = 0.0
-            close_price_override = live_p if live_p > 0 else entry_price
-        pnl_pct = ((close_price_override - entry_price) / entry_price) * 100 if entry_price > 0 else 0.0
-        pnl_val = (pnl_pct / 100.0) * amt_usdt if amt_usdt > 0 else 0.0
-        status_txt = "PROFIT" if pnl_val >= 0 else "LOSS"
-        history_entry = {
-            "date": str(date.today()),
-            "time": datetime.now().strftime("%I:%M:%S %p"),
-            "Symbol": sym,
-            "Market": trade.get("Market", "Spot"),
-            "Entry": f"{entry_price:,.6f}",
-            "Close": f"{close_price_override:,.6f}",
-            "Amount": f"${amt_usdt:,.2f}",
-            "PnL%": f"{pnl_pct:+.2f}%",
-            "pnl_val": pnl_val,
-            "status": status_txt,
-            "Reason": "Manually Closed",
-            "Rules": trade.get("Rules", ""),
-        }
-        us.setdefault("trade_history", []).insert(0, history_entry)
-        us["active_trades"] = actives
-        save_db(fresh)
-        add_log(f"✅ {sym} MANUALLY closed — PnL ${pnl_val:+,.2f} ({pnl_pct:+.2f}%). Moved to History.", username)
-        return True, f"{status_txt} ${pnl_val:+,.2f}"
-    except Exception as e:
-        return False, str(e)
-    finally:
-        if lock_m is not None:
-            release_lock(lock_m)
-
+            return [s for s, _ in scored[:top_n]]
+    return universe[:top_n]
 
 # ==========================================
 # STRATEGY / INDICATOR ENGINE  (signal + confirmation candle)
@@ -4038,93 +2998,17 @@ def calc_rsi(close_series, period=14):
     rs = avg_gain / avg_loss.replace(0, np.nan)
     return 100 - (100 / (1 + rs))
 
-def parse_ma_periods(raw):
-    """
-    User jo bhi likhe uska separator dekh kar AND/OR decide karta hai:
-      - Comma (,)  -> AND  -> "200,44,25" = teeno MA par condition honi chahiye
-      - Slash (/)  -> OR   -> "200/44/25" = in me se KISI EK MA par bhi mil jaye to trade
-    """
-    raw = (raw or "").strip()
-    if not raw:
-        return [], "AND"
-    if "/" in raw:
-        parts = raw.split("/")
-        logic = "OR"
-    else:
-        parts = raw.split(",")
-        logic = "AND"
-    periods = []
-    for p in parts:
-        p = p.strip()
-        if not p:
-            continue
-        try:
-            periods.append(int(p))
-        except Exception:
-            pass
-    return periods, logic
-
-def check_ma_condition(df, periods, logic="AND"):
-    """
-    2 REAL HUMAN MA patterns (per-period check, then AND/OR across multiple MAs):
-      Pattern A (BOUNCE / SUPPORT on MA):
-         Price thoda niche ho MA se → signal candle ki WICK/BODY MA ko TOUCH kare ya
-         thoda niche chali gayi ho (wick) par CLOSE wapas MA ke qareeb/upar aa jaye
-         (rejection/reclaim) → Confirmation candle GREEN ho + signal candle se Upar close.
-      Pattern B (BREAKOUT / Resistance Break above MA):
-         Pichhli 3-5 candles ke CLOSE MA se NICHE the → Signal candle ko CLOSE ho MA
-         ke Upar (properly closes above MA = resistance break) → Confirmation GREEN ho
-         + Signal candle ke close se bhi upar close kare (follow-through).
-    Multiple MAs diye ho to:
-      logic="AND" → HAR MA par in dono me se koi ek pattern milna chahiye
-      logic="OR"  → KISI BHI EK MA par koi ek pattern match kaafi hai
-    """
-    if not periods:
-        return False
-    if len(df) < max(periods) + 10:
-        return False
+def check_ma_condition(df, periods):
+    if not periods: return False
+    if len(df) < max(periods) + 3: return False
     sig = df.iloc[-2]; conf = df.iloc[-1]
-    sig_open, sig_high, sig_low, sig_close = [float(sig[x]) for x in ['open','high','low','close']]
-    conf_open, conf_high, conf_low, conf_close = [float(conf[x]) for x in ['open','high','low','close']]
-
-    if conf_close <= conf_open:
-        return False
-    if conf_close <= sig_close:
-        return False
-
-    per_ma_match = []
     for p in periods:
-        ma_series = df['close'].rolling(int(p)).mean()
-        ma_sig = float(ma_series.iloc[-2]) if not pd.isna(ma_series.iloc[-2]) else None
-        ma_conf = float(ma_series.iloc[-1]) if not pd.isna(ma_series.iloc[-1]) else None
-        if ma_sig is None or ma_conf is None:
-            per_ma_match.append(False)
-            continue
-
-        pat_ok = False
-        touched_by_range = sig_low <= ma_sig <= sig_high
-        reclaim_close = (sig_low < ma_sig) and (sig_close >= ma_sig * 0.9985)
-        pattern_a = (touched_by_range or reclaim_close) and (sig_close >= ma_sig * 0.999)
-        pattern_a = pattern_a and (conf_close > ma_conf * 0.999)
-
-        was_below_ma = True
-        check_n = min(5, len(df) - 2)
-        for i in range(1, check_n + 1):
-            idx = -(i + 2)
-            c_val = float(df['close'].iloc[idx])
-            m_val = float(ma_series.iloc[idx]) if not pd.isna(ma_series.iloc[idx]) else None
-            if m_val is None or c_val >= m_val:
-                was_below_ma = False
-                break
-        breakout_signal = (sig_close > ma_sig) and (sig_open < ma_sig or sig_low < ma_sig)
-        pattern_b = was_below_ma and breakout_signal and (conf_close > max(sig_close, ma_conf))
-
-        pat_ok = pattern_a or pattern_b
-        per_ma_match.append(pat_ok)
-
-    if logic == "OR":
-        return any(per_ma_match)
-    return all(per_ma_match)
+        ma = df['close'].rolling(int(p)).mean()
+        ma_sig = ma.iloc[-2]; ma_conf = ma.iloc[-1]
+        if pd.isna(ma_sig) or pd.isna(ma_conf): return False
+        if float(sig['close']) < float(ma_sig): return False
+        if float(conf['close']) < float(ma_conf): return False
+    return is_green(sig) and is_green(conf)
 
 def check_rsi_condition(df, rsi_min, rsi_max, period=14):
     if len(df) < period + 3: return False
@@ -4137,95 +3021,28 @@ def check_rsi_condition(df, rsi_min, rsi_max, period=14):
     return in_range and momentum_up and is_green(conf)
 
 def check_support_condition(df, lookback, tolerance_pct):
-    """
-    2 REAL HUMAN patterns for zones:
-      PATTERN 1 (SUPPORT ZONE BOUNCE):
-         Lookback me last 'n' SWING LOWs (local minima) ka zone — jahan 2+ baar price
-         bounce kiya ho. Signal candle us zone me aaye (touch/qareeb), phir confirmation
-         candle green bounce de + close upar jaye.
-      PATTERN 2 (RESISTANCE ZONE BREAKOUT):
-         Lookback me last 'n' SWING HIGHs (local maxima) = resistance zone.
-         Pichhli 3+ candles zone se niche thi → signal candle CLOSES ABOVE zone →
-         confirmation candle green + bhi upar follow kare (proper breakout).
-    Dono me se koi bhi match kare to return True.
-    """
-    recent = df.tail(int(lookback)).reset_index(drop=True)
-    if len(recent) < 10: return False
-
-    # --- SUPPORT ZONE: swing lows (local minima) ---
-    swing_lows = []
-    lows = recent['low'].astype(float).values
-    for i in range(2, len(lows) - 2):
-        if lows[i] < lows[i-1] and lows[i] < lows[i-2] and lows[i] < lows[i+1] and lows[i] < lows[i+2]:
-            swing_lows.append(lows[i])
-    if len(swing_lows) < 2:
-        swing_lows = list(recent['low'].astype(float).nsmallest(3).values)
-    sup_zone_low  = min(swing_lows) * (1 - tolerance_pct/100 * 0.2)
-    sup_zone_high = max(swing_lows) * (1 + tolerance_pct/100)
-
-    # --- RESISTANCE ZONE: swing highs (local maxima) ---
-    swing_highs = []
-    highs = recent['high'].astype(float).values
-    for i in range(2, len(highs) - 2):
-        if highs[i] > highs[i-1] and highs[i] > highs[i-2] and highs[i] > highs[i+1] and highs[i] > highs[i+2]:
-            swing_highs.append(highs[i])
-    if len(swing_highs) < 2:
-        swing_highs = list(recent['high'].astype(float).nlargest(3).values)
-    res_zone_low  = min(swing_highs) * (1 - tolerance_pct/100)
-    res_zone_high = max(swing_highs) * (1 + tolerance_pct/100 * 0.2)
-
+    recent = df.tail(int(lookback))
+    if len(recent) < 6: return False
+    support = float(recent['low'].min())
+    if support <= 0: return False
     sig = df.iloc[-2]; conf = df.iloc[-1]
-    sig_low_f   = float(sig['low']);   sig_close_f = float(sig['close'])
-    conf_close_f = float(conf['close']); conf_green = is_green(conf)
-
-    # Pattern 1: Support zone touch → green bounce
-    pattern_1 = False
-    touch_sup = (sup_zone_low <= sig_low_f <= sup_zone_high) or (sup_zone_low <= sig_close_f <= sup_zone_high)
-    if touch_sup and conf_green and conf_close_f > sig_close_f:
-        pattern_1 = True
-
-    # Pattern 2: Resistance zone breakout
-    pattern_2 = False
-    n_check = min(5, len(df) - 2)
-    was_below_res = True
-    for i in range(1, n_check + 1):
-        c_v = float(df['close'].iloc[-(i + 2)])
-        if c_v >= res_zone_low:
-            was_below_res = False
-            break
-    broke_above = sig_close_f > res_zone_high
-    if was_below_res and broke_above and conf_green and conf_close_f > max(sig_close_f, res_zone_high):
-        pattern_2 = True
-
-    return pattern_1 or pattern_2
+    near_support = abs(float(sig['low']) - support) / support * 100 <= tolerance_pct
+    bounce = is_green(conf) and float(conf['close']) > float(sig['close'])
+    return near_support and bounce
 
 def check_order_block_condition(df, lookback, tolerance_pct=1.0):
-    """
-    Bullish Order Block: ek strong impulse (bade body + averagese zyada volume wali)
-    green candle dhoondo. Uske pichle 1-2 candles ka combined high/low hi asli "zone"
-    hai (real trader bhi sirf ek candle nahi, base banane wali 1-2 candles dekhta hai).
-    Price wapas us zone me aaye (tap) aur confirmation candle green reaction de.
-    """
     recent = df.tail(int(lookback)).reset_index(drop=True)
     if len(recent) < 25: return False
     body = (recent['close'] - recent['open']).abs()
     avg_body = body.rolling(20).mean()
-    avg_vol = recent['volume'].rolling(20).mean()
     ob_zone = None
     for i in range(20, len(recent)):
         is_bullish = recent['close'].iloc[i] > recent['open'].iloc[i]
         is_impulse = (not pd.isna(avg_body.iloc[i])) and body.iloc[i] > 1.8 * avg_body.iloc[i]
-        vol_ok = True
-        if not pd.isna(avg_vol.iloc[i]):
-            vol_ok = float(recent['volume'].iloc[i]) >= float(avg_vol.iloc[i])
-        if is_bullish and is_impulse and vol_ok and i > 0:
-            prev1 = recent.iloc[i - 1]
-            prev2 = recent.iloc[i - 2] if i >= 2 else prev1
-            base_is_down = (prev1['close'] < prev1['open']) or (prev2['close'] < prev2['open'])
-            if base_is_down:
-                zone_low = min(float(prev1['low']), float(prev2['low']))
-                zone_high = max(float(prev1['high']), float(prev2['high']))
-                ob_zone = (zone_low, zone_high)
+        if is_bullish and is_impulse and i > 0:
+            prev = recent.iloc[i - 1]
+            if prev['close'] < prev['open']:
+                ob_zone = (float(prev['low']), float(prev['high']))
     if ob_zone is None: return False
     zone_low, zone_high = ob_zone
     zone_high_padded = zone_high * (1 + tolerance_pct / 100)
@@ -4264,51 +3081,39 @@ def check_trendline_condition(df, lookback, touches_required, tolerance_pct=1.5)
     return near_line and bounce
 
 def evaluate_manual_strategy(ex, symbol, cfg):
-    """
-    Ek ya zyada timeframes diye ja sakte hain (OR logic: kisi bhi EK timeframe par
-    saari enabled conditions match ho jayein to trade/signal ban jata hai — doosre
-    timeframes check karne ki zaroorat nahi). Ek hi timeframe diya ho to wahi jaisa
-    pehle hota tha waisa hi kaam karta hai.
-    """
-    timeframes = cfg.get("timeframes") or [cfg.get("timeframe", "1h")]
+    tf = cfg.get("timeframe", "1h")
     ma_periods = cfg.get("ma_periods", []) or [0]
-    ma_logic = cfg.get("ma_logic", "AND")
     needed_limit = max(cfg.get("sr_lookback", 50), cfg.get("ob_lookback", 50),
                        cfg.get("trend_lookback", 100), max(ma_periods), 210) + 30
-
-    for tf in timeframes:
-        df = get_ohlcv_df(ex, symbol, tf, limit=int(needed_limit))
-        if df is None:
-            continue
-        matched_rules = []; results = []
-        if cfg.get("ma_enabled"):
-            periods = cfg.get("ma_periods", [])
-            if not periods:
-                results.append(False)
-            else:
-                r = check_ma_condition(df, periods, ma_logic); results.append(r)
-                if r:
-                    sep = "/" if ma_logic == "OR" else ","
-                    matched_rules.append(f"MA({sep.join(str(p) for p in periods)} {ma_logic})")
-        if cfg.get("rsi_enabled"):
-            r = check_rsi_condition(df, cfg.get("rsi_min", 30), cfg.get("rsi_max", 45)); results.append(r)
-            if r: matched_rules.append(f"RSI({cfg.get('rsi_min')}-{cfg.get('rsi_max')})")
-        if cfg.get("sr_enabled"):
-            r = check_support_condition(df, cfg.get("sr_lookback", 50), cfg.get("sr_tolerance_pct", 1.0)); results.append(r)
-            if r: matched_rules.append("Support Bounce")
-        if cfg.get("ob_enabled"):
-            r = check_order_block_condition(df, cfg.get("ob_lookback", 50)); results.append(r)
-            if r: matched_rules.append("Order Block")
-        if cfg.get("vol_enabled"):
-            r = check_volume_condition(ex, symbol, cfg.get("vol_min_usdt", 500000)); results.append(r)
-            if r: matched_rules.append("Volume Filter")
-        if cfg.get("trend_enabled"):
-            r = check_trendline_condition(df, cfg.get("trend_lookback", 100), cfg.get("trend_touches", 3)); results.append(r)
-            if r: matched_rules.append("Trendline Bounce")
-        if results and all(results):
-            matched_rules.append(f"TF:{tf}")
-            return True, matched_rules
-    return False, []
+    df = get_ohlcv_df(ex, symbol, tf, limit=int(needed_limit))
+    if df is None:
+        return False, []
+    matched_rules = []; results = []
+    if cfg.get("ma_enabled"):
+        periods = cfg.get("ma_periods", [])
+        if not periods:
+            results.append(False)
+        else:
+            r = check_ma_condition(df, periods); results.append(r)
+            if r: matched_rules.append(f"MA({','.join(str(p) for p in periods)})")
+    if cfg.get("rsi_enabled"):
+        r = check_rsi_condition(df, cfg.get("rsi_min", 30), cfg.get("rsi_max", 45)); results.append(r)
+        if r: matched_rules.append(f"RSI({cfg.get('rsi_min')}-{cfg.get('rsi_max')})")
+    if cfg.get("sr_enabled"):
+        r = check_support_condition(df, cfg.get("sr_lookback", 50), cfg.get("sr_tolerance_pct", 1.0)); results.append(r)
+        if r: matched_rules.append("Support Bounce")
+    if cfg.get("ob_enabled"):
+        r = check_order_block_condition(df, cfg.get("ob_lookback", 50)); results.append(r)
+        if r: matched_rules.append("Order Block")
+    if cfg.get("vol_enabled"):
+        r = check_volume_condition(ex, symbol, cfg.get("vol_min_usdt", 500000)); results.append(r)
+        if r: matched_rules.append("Volume Filter")
+    if cfg.get("trend_enabled"):
+        r = check_trendline_condition(df, cfg.get("trend_lookback", 100), cfg.get("trend_touches", 3)); results.append(r)
+        if r: matched_rules.append("Trendline Bounce")
+    if not results:
+        return False, []
+    return all(results), matched_rules
 
 # ==========================================
 # AUTHENTICATION
@@ -4382,10 +3187,9 @@ st.sidebar.markdown(f"""
 """, unsafe_allow_html=True)
 if st.sidebar.button("🚪 Logout", use_container_width=True):
     st.session_state.logged_in = False
-    # bot_active DB me hai, session se independent — logout karne se bot NAHI rukta
+    st.session_state.bot_running = False
     st.rerun()
 st.sidebar.markdown("---")
-st.sidebar.markdown("<div class='apex-side-caption'>Navigation</div>", unsafe_allow_html=True)
 config_menu = st.sidebar.radio(
     "Configs",
     ["📊 Dashboard", "🔌 Exchange Integration", "⚙️ Strategy Studio", "📦 Limitation & Campaign"],
@@ -4396,212 +3200,46 @@ config_menu = st.sidebar.radio(
 # 1. EXCHANGE INTEGRATION
 # ==========================================
 if config_menu == "🔌 Exchange Integration":
-    st.markdown(
-        "<div class='apex-section-title'><span class='dot'></span><span>Exchange API Integration</span></div>",
-        unsafe_allow_html=True
-    )
-    st.caption("Live account ya Demo Trading account — dono ka connection alag environment par verify hota hai.")
+    st.title("🔌 Exchange API Integration")
     st.markdown("---")
-
-    _backfill_user(user_settings)
-    ex_cfg = user_settings["exchange"]
-
     if _CRYPTO_OK:
-        st.markdown(
-            "<div class='crypto-card apex-blue-glow' style='border-left:4px solid #3b82f6;'>"
-            "🔐 <b>API Security:</b> API key aur secret encrypted form me database me save hote hain. "
-            "Plain key logs me nahi likhi jati."
-            "</div>",
-            unsafe_allow_html=True
-        )
+        st.markdown("<div class='crypto-card' style='border-left:4px solid #0ecb81;'>🔐 API key aur secret database me <b>encrypted</b> save hote hain (plain nahi).</div>", unsafe_allow_html=True)
     else:
-        st.markdown(
-            "<div class='crypto-card' style='border-left:4px solid #f6465d;'>"
-            "⚠️ <b>cryptography</b> install nahi — keys encrypt nahi hongi. "
-            "Terminal me <code>pip install cryptography</code> chalao."
-            "</div>",
-            unsafe_allow_html=True
-        )
-
-    col1, col2 = st.columns([1.2, 1], gap="large")
-
+        st.markdown("<div class='crypto-card' style='border-left:4px solid #f6465d;'>⚠️ <b>cryptography</b> install nahi — keys abhi plain save hongi. <code>pip install cryptography</code> chala kar dobara connect karo.</div>", unsafe_allow_html=True)
+    col1, col2 = st.columns([1.3, 1], gap="large")
     with col1:
-        st.markdown("<div class='crypto-card apex-blue-glow'>", unsafe_allow_html=True)
-
-        cur_ex = ex_cfg.get("name", "Binance")
-        ex_choice = st.selectbox(
-            "Select Crypto Exchange",
-            EXCHANGE_LIST,
-            index=EXCHANGE_LIST.index(cur_ex) if cur_ex in EXCHANGE_LIST else 0,
-        )
-
-        current_market = ex_cfg.get("market", "Spot")
-        market_type = st.radio(
-            "Market Architecture",
-            ["Spot", "Futures (Derivatives)"],
-            index=0 if current_market == "Spot" else 1,
-            horizontal=True,
-        )
-
-        current_env = _exchange_environment(ex_cfg)
-        env_choice = st.radio(
-            "Account Environment",
-            ["Demo Trading", "Live"],
-            index=0 if current_env == "Demo Trading" else 1,
-            horizontal=True,
-        )
-
-        if env_choice == "Demo Trading":
-            if ex_choice == "Binance":
-                demo_host = "demo-fapi.binance.com" if _is_futures_market(market_type) else "demo-api.binance.com"
-                st.markdown(
-                    f"<div class='crypto-card' style='border-left:4px solid #3b82f6; padding:12px 15px;'>"
-                    f"<span class='apex-env-demo'>🔵 DEMO TRADING ACTIVE</span><br>"
-                    f"<span style='color:#9aa4b2;font-size:12px;'>API endpoint: {demo_host}</span><br>"
-                    f"<span style='color:#9aa4b2;font-size:12px;'>Demo API keys use karo — LIVE keys yahan use mat karo.</span>"
-                    f"</div>",
-                    unsafe_allow_html=True
-                )
-        else:
-            st.markdown(
-                "<div class='crypto-card' style='border-left:4px solid #0ecb81; padding:12px 15px;'>"
-                "<span class='apex-env-live'>🟢 LIVE ACCOUNT ACTIVE</span><br>"
-                "<span style='color:#9aa4b2;font-size:12px;'>Real account orders place ho sakte hain. "
-                "Withdrawal permission OFF rakhna strongly recommended hai.</span>"
-                "</div>",
-                unsafe_allow_html=True
-            )
-
-        api_k = st.text_input(
-            "API Key",
-            type="password",
-            value=dec_secret(ex_cfg.get("key", "")),
-            key="exchange_api_key_input"
-        )
-        secret_k = st.text_input(
-            "Secret Key",
-            type="password",
-            value=dec_secret(ex_cfg.get("secret", "")),
-            key="exchange_secret_key_input"
-        )
-
-        if env_choice == "Demo Trading":
-            st.caption("🔵 Demo keys sirf Demo environment ke liye hain. Live keys aur Demo keys mix mat karo.")
-        else:
-            st.caption("🟢 Live keys real funds access kar sakti hain. Withdrawal OFF + IP whitelist use karo.")
-
-        if _is_futures_market(market_type):
-            st.caption(
-                f"🛡️ Futures safety: bot default leverage **{FUTURES_SAFE_LEVERAGE}x** aur "
-                f"margin mode **{FUTURES_MARGIN_MODE}** set karne ki koshish karega."
-            )
-
-        if st.button("🔌 Connect & Verify API", type="primary", use_container_width=True, key="connect_exchange"):
-            if not api_k.strip() or not secret_k.strip():
-                st.error("❌ API Key aur Secret Key dono required hain.")
-            else:
-                try:
-                    test_cfg_plain = {
-                        "name": ex_choice,
-                        "market": market_type,
-                        "key": api_k.strip(),
-                        "secret": secret_k.strip(),
-                        "environment": env_choice,
-                        "demo": env_choice == "Demo Trading",
-                    }
-
-                    with st.spinner(f"{ex_choice} {env_choice} API verify ho rahi hai..."):
-                        ex = create_exchange(test_cfg_plain)
-                        ex.load_markets()
-                        balance = ex.fetch_balance()
-
-                    user_settings["exchange"] = {
-                        "name": ex_choice,
-                        "market": market_type,
-                        "key": enc_secret(api_k.strip()),
-                        "secret": enc_secret(secret_k.strip()),
-                        "environment": env_choice,
-                        "demo": env_choice == "Demo Trading",
-                        "connected": True,
-                    }
-                    save_db(db)
-
-                    total = None
-                    try:
-                        total = balance.get("total", {}).get("USDT")
-                    except Exception:
-                        pass
-                    balance_note = f" | USDT balance: {float(total):,.2f}" if total is not None else ""
-                    st.success(
-                        f"✅ {ex_choice} connected successfully — {env_choice} / {market_type}{balance_note}"
-                    )
-                    st.rerun()
-
-                except Exception as e:
-                    ex_cfg["connected"] = False
-                    save_db(db)
-
-                    err_txt = str(e)
-                    low = err_txt.lower()
-
-                    if "invalid api-key" in low or "-2015" in low or ("api-key" in low and "invalid" in low):
-                        st.error(
-                            "❌ API key reject hui. Confirm karo ke key isi selected environment ki hai "
-                            "(Demo key → Demo Trading, Live key → Live) aur key permissions/API restrictions sahi hain."
-                        )
-                    elif "demo" in low and ("not supported" in low or "unsupported" in low):
-                        st.error(
-                            "❌ Installed CCXT Demo Trading support nahi de raha. "
-                            "Terminal me `pip install -U ccxt` chalao, phir app restart karo."
-                        )
-                    elif "sandbox" in low and "futures" in low:
-                        st.error(
-                            "❌ Futures ke liye old Binance Sandbox/Testnet use nahi karo. "
-                            "Account Environment me **Demo Trading** select karo aur Binance Futures Demo API keys use karo."
-                        )
+        st.markdown("<div class='crypto-card'>", unsafe_allow_html=True)
+        ex_list = ["Binance", "Bybit", "OKX", "KuCoin"]
+        cur_ex = user_settings["exchange"].get("name", "Binance")
+        ex_choice = st.selectbox("Select Crypto Exchange", ex_list, index=ex_list.index(cur_ex) if cur_ex in ex_list else 0)
+        market_type = st.radio("Market Architecture", ["Spot", "Futures (Derivatives)"], index=0 if user_settings["exchange"].get("market") == "Spot" else 1, horizontal=True)
+        api_k = st.text_input("API Key", type="password", value=dec_secret(user_settings["exchange"].get("key", "")))
+        secret_k = st.text_input("Secret Key", type="password", value=dec_secret(user_settings["exchange"].get("secret", "")))
+        demo_chk = st.checkbox("Enable Sandbox / Testnet Mode", value=user_settings["exchange"].get("demo", True))
+        st.caption("Tip: exchange par key banate waqt sirf **Spot trading** on karo, **Withdrawal OFF** rakho, aur ho sake to server IP whitelist karo.")
+        if st.button("🔌 Connect & Verify API", type="primary", use_container_width=True):
+            try:
+                ex_config = {'apiKey': api_k, 'secret': secret_k, 'enableRateLimit': True,
+                             'options': {'defaultType': 'future' if market_type == "Futures (Derivatives)" else 'spot'}}
+                ex = ccxt.binance(ex_config)
+                if demo_chk:
+                    ex.set_sandbox_mode(True)
+                    if market_type == "Futures (Derivatives)":
+                        ex.urls['api']['fapiPublic'] = 'https://testnet.binancefuture.com/fapi/v1'
+                        ex.urls['api']['fapiPrivate'] = 'https://testnet.binancefuture.com/fapi/v1'
                     else:
-                        st.error(f"❌ Connection failed: {err_txt[:500]}")
-
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with col2:
-        st.markdown("<div class='crypto-card apex-blue-glow'>", unsafe_allow_html=True)
-        st.subheader("🔐 Connection Guide")
-
-        if env_choice == "Demo Trading":
-            st.markdown(
-                "**Demo mode:**\n"
-                "- Binance Demo Trading se API key + secret generate karo.\n"
-                "- **Spot:** `demo-api.binance.com`\n"
-                "- **USD-M Futures:** `demo-fapi.binance.com`\n"
-                "- Demo keys ko Live mode me use mat karo."
-            )
-            st.info("Demo Trading simulated funds use karta hai; real funds place nahi hote.")
-        else:
-            st.markdown(
-                "**Live mode:**\n"
-                "- Live Binance API Management se key + secret banao.\n"
-                "- Trading permission sirf zaroorat ke mutabiq ON karo.\n"
-                "- Withdrawal permission OFF rakho.\n"
-                "- Server IP whitelist karna recommended hai."
-            )
-            st.warning("⚠️ Live mode real orders place kar sakta hai.")
-
-        connected_now = bool(ex_cfg.get("connected")) and bool(ex_cfg.get("key"))
-        saved_env = _exchange_environment(ex_cfg)
-        status_color = "#0ecb81" if connected_now else "#f6465d"
-        status_text = "CONNECTED" if connected_now else "NOT CONNECTED"
-        st.markdown(
-            f"<div style='margin-top:16px;padding:14px;border:1px solid #2b313a;border-radius:12px;"
-            f"background:linear-gradient(180deg,#12171e,#0f1318);'>"
-            f"<div style='color:#848e9c;font-size:11px;letter-spacing:.8px;'>CURRENT STATUS</div>"
-            f"<div style='color:{status_color};font-size:18px;font-weight:800;margin-top:4px;'>● {status_text}</div>"
-            f"<div style='color:#9aa4b2;font-size:12px;margin-top:7px;'>"
-            f"{ex_cfg.get('name','Binance')} · {ex_cfg.get('market','Spot')} · {saved_env}"
-            f"</div></div>",
-            unsafe_allow_html=True
-        )
-
+                        ex.urls['api']['public'] = 'https://demo-api.binance.com/api/v3'
+                        ex.urls['api']['private'] = 'https://demo-api.binance.com/api/v3'
+                ex.fetch_balance()
+                user_settings["exchange"] = {"name": ex_choice, "market": market_type,
+                                             "key": enc_secret(api_k), "secret": enc_secret(secret_k),
+                                             "demo": demo_chk, "connected": True}
+                save_db(db)
+                st.success(f"✨ Successfully connected to {ex_choice} ({market_type})! Keys {'encrypted' if _CRYPTO_OK else 'saved'}.")
+            except Exception as e:
+                user_settings["exchange"]["connected"] = False
+                save_db(db)
+                st.error(f"❌ Connection failed: {str(e)}")
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
@@ -4625,54 +3263,24 @@ elif config_menu == "⚙️ Strategy Studio":
         manual_cfg = user_settings["strategy"]["manual"]
         st.markdown("<div class='crypto-card'>", unsafe_allow_html=True)
         st.subheader("⏱️ Timeframe (Global)")
-        tf_options = ["15m", "1h", "4h", "1d", "1w"]
-
-        # Current defaults: purana multi-TF wala setting ho to usi hisab se checkbox state set karo
-        stored_tfs = manual_cfg.get("timeframes") or ([manual_cfg["timeframe"]] if manual_cfg.get("timeframe") else ["1h"])
-        stored_tfs = [t for t in stored_tfs if t in tf_options] or ["1h"]
-        stored_single = manual_cfg.get("timeframe") if manual_cfg.get("timeframe") in tf_options else (stored_tfs[0] if stored_tfs else "1h")
-        multi_tf_default = (len(stored_tfs) > 1) or bool(manual_cfg.get("multi_tf_enabled", False))
-
-        multi_on = st.checkbox("Enable Multi-Timeframe Scan (OR logic: kisi bhi TF par match ho jaye to trade/signal)", value=multi_tf_default)
-        manual_cfg["multi_tf_enabled"] = bool(multi_on)
-
-        if not multi_on:
-            # ============ DEFAULT: SINGLE SELECT DROPDOWN (jaise user ki reference image me) ============
-            cur_single = stored_single if stored_single in tf_options else "1h"
-            selected_single = st.selectbox("Candle Timeframe", tf_options, index=tf_options.index(cur_single))
-            manual_cfg["timeframe"] = selected_single
-            manual_cfg["timeframes"] = [selected_single]
-            st.caption("Rule: Saari indicators ishi timeframe ke candles par check honge. Multi TF chahiye to upar ka checkbox tick karo.")
-        else:
-            # ============ OPTIONAL: MULTI-SELECT (OR logic) ============
-            default_multi = stored_tfs if all(t in tf_options for t in stored_tfs) else ["1h"]
-            picked_multi = st.multiselect("Candle Timeframes (ek ya zyada select karo)", tf_options, default=default_multi)
-            if not picked_multi:
-                picked_multi = [stored_single] if stored_single in tf_options else ["1h"]
-            manual_cfg["timeframe"] = picked_multi[0]  # backward compat
-            manual_cfg["timeframes"] = picked_multi
-            st.caption("1 TF select karo to single jaisa hi kaam. 2+ select karo to OR logic — jis bhi TF par saari conditions match ho, wahi se trade.")
+        tf_options = ["15m", "1h", "4h", "1d"]
+        cur_tf = manual_cfg.get("timeframe", "1h")
+        manual_cfg["timeframe"] = st.selectbox("Candle Timeframe", tf_options, index=tf_options.index(cur_tf) if cur_tf in tf_options else 1)
         st.markdown("</div>", unsafe_allow_html=True)
 
         c1, c2 = st.columns(2, gap="large")
         with c1:
             st.markdown("<div class='crypto-card'>", unsafe_allow_html=True)
             manual_cfg["ma_enabled"] = st.checkbox("📈 Enable Moving Average (MA) Filter", value=manual_cfg.get("ma_enabled", False))
-            _cur_ma_periods = manual_cfg.get("ma_periods", [])
-            _cur_ma_logic = manual_cfg.get("ma_logic", "AND")
-            _cur_ma_sep = "/" if _cur_ma_logic == "OR" else ","
-            ma_str = st.text_input(
-                "MA Periods —  ,  se AND  |  /  se OR",
-                value=_cur_ma_sep.join(str(p) for p in _cur_ma_periods),
-                placeholder="AND (sabhi MA par): 200,44,25   |   OR (kisi bhi ek MA par): 200/44/25",
-                disabled=not manual_cfg["ma_enabled"])
-            manual_cfg["ma_periods"], manual_cfg["ma_logic"] = parse_ma_periods(ma_str)
-            if manual_cfg.get("ma_enabled") and manual_cfg["ma_periods"]:
-                if manual_cfg["ma_logic"] == "OR":
-                    st.caption(f"Mode: **OR** — in me se KISI BHI EK MA ({', '.join(map(str, manual_cfg['ma_periods']))}) par pattern mile to trade.")
-                else:
-                    st.caption(f"Mode: **AND** — SABHI MA ({', '.join(map(str, manual_cfg['ma_periods']))}) par pattern hona chahiye.")
-            st.caption("Rule: signal candle MA ko touch/react kare (bounce/reclaim), phir confirmation candle green + upar close kare.")
+            ma_str = st.text_input("MA Periods (comma separated)",
+                                   value=",".join(str(p) for p in manual_cfg.get("ma_periods", [])),
+                                   placeholder="e.g. 200  ya  44,100,200  (khaali = MA check nahi hoga)",
+                                   disabled=not manual_cfg["ma_enabled"])
+            try:
+                manual_cfg["ma_periods"] = [int(x.strip()) for x in ma_str.split(",") if x.strip()]
+            except Exception:
+                manual_cfg["ma_periods"] = []
+            st.caption("Rule: signal candle green + har MA ke upar, phir confirmation candle bhi green + upar.")
             st.markdown("</div>", unsafe_allow_html=True)
 
             st.markdown("<div class='crypto-card'>", unsafe_allow_html=True)
@@ -4687,14 +3295,14 @@ elif config_menu == "⚙️ Strategy Studio":
             manual_cfg["sr_enabled"] = st.checkbox("🧱 Enable Support Bounce Filter", value=manual_cfg.get("sr_enabled", False))
             manual_cfg["sr_lookback"] = st.number_input("Support Lookback Candles", 10, 500, value=int(manual_cfg.get("sr_lookback", 50)), disabled=not manual_cfg["sr_enabled"])
             manual_cfg["sr_tolerance_pct"] = st.number_input("Max Distance From Support (%)", 0.1, 10.0, value=float(manual_cfg.get("sr_tolerance_pct", 1.0)), disabled=not manual_cfg["sr_enabled"])
-            st.caption("Rule: price support ZONE (3 lowest lows ka average) ke paas aaye + green bounce candle confirm kare.")
+            st.caption("Rule: price support ke paas aaye + green bounce candle confirm kare.")
             st.markdown("</div>", unsafe_allow_html=True)
 
         with c2:
             st.markdown("<div class='crypto-card'>", unsafe_allow_html=True)
             manual_cfg["ob_enabled"] = st.checkbox("🟩 Enable Order Block (Bullish) Filter", value=manual_cfg.get("ob_enabled", False))
             manual_cfg["ob_lookback"] = st.number_input("Order Block Lookback Candles", 20, 500, value=int(manual_cfg.get("ob_lookback", 50)), disabled=not manual_cfg["ob_enabled"])
-            st.caption("Rule: volume-confirmed impulse + pichli 1-2 candles ka zone touch + green reaction candle confirm kare.")
+            st.caption("Rule: OB zone touch + green reaction candle confirm kare.")
             st.markdown("</div>", unsafe_allow_html=True)
 
             st.markdown("<div class='crypto-card'>", unsafe_allow_html=True)
@@ -4814,7 +3422,7 @@ elif config_menu == "📦 Limitation & Campaign":
                     "✅ Apex Trading — Test Email",
                     "<html><body style='font-family:Arial;background:#0b0e11;color:#eaecef;padding:20px;'>"
                     "<h2 style='color:#fcd535;'>Test email successful!</h2>"
-                    "<p>Agar aapko ye email mila hai, matlab Brevo HTTPS email settings bilkul sahi hain.</p>"
+                    "<p>Agar aapko ye email mila hai, matlab SMTP settings bilkul sahi hain.</p>"
                     "</body></html>",
                     email_cfg
                 )
@@ -4822,7 +3430,7 @@ elif config_menu == "📦 Limitation & Campaign":
                 st.success("✅ Test email bhej diya gaya! Apna inbox (aur Spam folder) check karo.")
             else:
                 st.error("❌ Test email fail hua. Exact error dekhne ke liye Dashboard → 📜 Bot Logs kholo — "
-                         "wahan Brevo API ka asli error message milega.")
+                         "wahan Gmail ka asli error message milega (jaise galat App Password, ya 2-Step Verification off).")
 
     if st.button("💾 Save Limits & Notifications", type="primary", use_container_width=True):
         save_db(db); st.success("✅ Saved successfully!")
@@ -4834,7 +3442,7 @@ else:
     rt = get_runtime(user_settings)
     save_db(db)
     st.markdown(f"""
-        <div style='display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; margin-bottom: 5px;'>
+        <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;'>
             <div>
                 <h1 style='margin: 0; font-size: 26px;'>⚡ Apex Trading Dashboard</h1>
                 <p style='margin: 4px 0 0 0; color: #848e9c; font-size: 13px;'>Rule-Based Strategy Engine + optional AI Prompt mode.</p>
@@ -4853,39 +3461,25 @@ else:
     if dash_tab == "📊 Analytics":
         ex_status_cfg = user_settings.get("exchange", {})
         is_connected = bool(ex_status_cfg.get("connected")) and bool(ex_status_cfg.get("key"))
-        saved_env = _exchange_environment(ex_status_cfg)
         if is_connected:
-            env_label = "🔵 Demo Trading" if saved_env == "Demo Trading" else "🟢 Live Account"
-            st.markdown(
-                f"<div class='crypto-card apex-blue-glow'>"
-                f"🟢 <b>Exchange Status:</b> Connected · <b>{env_label}</b> — "
-                f"Automated mode CAN place orders in the selected environment.</div>",
-                unsafe_allow_html=True
-            )
+            st.markdown("<div class='crypto-card'>🟢 <b>Exchange Status:</b> Connected — Automated mode CAN place real orders.</div>", unsafe_allow_html=True)
         else:
-            st.markdown(
-                "<div class='crypto-card'>🔴 <b>Exchange Status:</b> NOT connected (or API key missing). "
-                "Bot signals bana sakta hai, lekin real/demo order tab tak nahi jayega jab tak "
-                "<b>Exchange Integration</b> me API verify na ho.</div>",
-                unsafe_allow_html=True
-            )
+            st.markdown("<div class='crypto-card'>🔴 <b>Exchange Status:</b> NOT connected (or API key missing). "
+                        "Bot signals to banata rahega par tab tak real order NAHI karega jab tak <b>Exchange Integration</b> me connect na karo.</div>", unsafe_allow_html=True)
 
-        st.markdown("<div class='crypto-card' style='border-left:4px solid #0ecb81;'>✅ <b>Bot ab background me chalta hai:</b> "
-                    "Start karne ke baad browser tab band karo, phone lock karo, PC bhi band kar do — bot chalta rahega jab tak "
-                    "aap khud <b>STOP BOT</b> na dabao. Kitne bhi tabs khule hon, sirf EK hi bot-thread chalta hai (double-trade ka purana masla khatam).</div>", unsafe_allow_html=True)
+        st.markdown("<div class='crypto-card' style='border-left:4px solid #f6465d;'>⚠️ <b>Zaroori:</b> App ko sirf <b>ek hi browser tab</b> me chalao. "
+                    "Ek se zyada tab khule honge to har tab apna bot loop chalata hai — is se limit galat lag sakti hai.</div>", unsafe_allow_html=True)
 
         history = user_settings["trade_history"]
         total_trades = len(history)
         successful_wins = len([h for h in history if "PROFIT" in h.get("status", "")])
         today_pnl = sum([float(h.get("pnl_val", 0)) for h in history if h.get("date") == str(date.today())])
 
-        bot_is_active = bool(user_settings.get("bot_active", False))
-
         c_m1, c_m2, c_m3, c_m4 = st.columns(4)
         c_m1.metric("Total Trades Executed", total_trades)
         c_m2.metric("Successful Wins", successful_wins)
         c_m3.metric("Today's Net PnL", f"${today_pnl:+,.2f}")
-        c_m4.metric("Bot Status", "🟢 Running (background)" if bot_is_active else "🔴 Stopped")
+        c_m4.metric("Bot Status", "Running" if st.session_state.bot_running else "Stopped")
 
         _lim = int(user_settings["limits"].get("daily_limit", 1))
         # Display ko hamesha clamp karo — chahe kisi bhi wajah se number thoda idhar-udhar ho,
@@ -4906,86 +3500,50 @@ else:
         st.markdown("<br>", unsafe_allow_html=True)
         b_c1, b_c2 = st.columns(2)
         with b_c1:
-            if st.button("🚀 START BOT ENGINE", use_container_width=True, type="primary", disabled=bot_is_active):
-                user_settings["bot_active"] = True
-                save_db(db)
-                ensure_all_bot_threads()
-                add_log("Apex bot engine started — background thread me chalega, tab/phone band karne se nahi rukega.")
+            if st.button("🚀 START BOT ENGINE", use_container_width=True, type="primary"):
+                st.session_state.bot_running = True
+                add_log("Apex bot engine started.")
                 st.rerun()
         with b_c2:
-            if st.button("🛑 STOP BOT", use_container_width=True, disabled=not bot_is_active):
-                user_settings["bot_active"] = False
-                save_db(db)
-                add_log("Apex bot stop request diya gaya — chalu cycle khatam hote hi (~15 sec) ruk jayega.")
+            if st.button("🛑 STOP BOT", use_container_width=True):
+                st.session_state.bot_running = False
+                add_log("Apex bot stopped.")
                 st.rerun()
 
     elif dash_tab == "🎯 Active Trades":
-        top1, top2, top3 = st.columns([0.45, 0.3, 0.25])
+        top1, top2 = st.columns([0.7, 0.3])
         with top1:
             st.subheader("🎯 Active Positions")
         with top2:
-            st.caption("TP/SL auto-check har bot cycle me hota hai. Ya neeche Refresh dabao.")
-        with top3:
-            need_ui_rerun_after = False
-            if st.button("🔄 Refresh PnL", use_container_width=True, key="refresh_active_pnl"):
-                monitor_close_active_trades(curr_user)
-                need_ui_rerun_after = True
-        if user_settings["active_trades"]:
-            st.button("🗑️ Clear (UI Only — history me NAHI jayega)", key="clr_active",
-                      on_click=lambda: (user_settings.__setitem__("active_trades", []), save_db(db)))
+            if user_settings["active_trades"] and st.button("🗑️ Clear All", use_container_width=True, key="clr_active"):
+                user_settings["active_trades"] = []
+                save_db(db); st.rerun()
+
         active_list = user_settings["active_trades"]
         if active_list:
-            cols_header = st.columns([0.18, 0.14, 0.12, 0.15, 0.15, 0.1, 0.16])
-            h = cols_header[0].write("🪙 Symbol"); cols_header[1].write("Entry / Live")
-            cols_header[2].write("Unrealized PnL"); cols_header[3].write("TP / SL"); cols_header[4].write("Allocated")
-            cols_header[5].write("Rules"); cols_header[6].write("Action")
-            st.markdown("---")
             for idx, trade in enumerate(list(active_list)):
-                sym = trade.get("Symbol", "")
-                entry_str = str(trade.get("Entry", "0")).replace(",", "")
-                entry_f = 0.0
-                try: entry_f = float(entry_str)
-                except Exception: entry_f = 0.0
-                live_str = str(trade.get("LivePrice", trade.get("Entry", "0"))).replace(",", "")
-                live_f = 0.0
-                try: live_f = float(live_str)
-                except Exception: live_f = entry_f
-                unreal_str = trade.get("Unrealized", "—")
-                amt_str = str(trade.get("Amount", "$0")).replace("$", "").replace(",", "").strip()
-                amt_f = 0.0
-                try: amt_f = float(amt_str)
-                except Exception: amt_f = 0.0
-                if unreal_str == "—" and amt_f > 0 and entry_f > 0 and live_f > 0:
-                    up = ((live_f - entry_f) / entry_f) * 100
-                    uv = (up / 100.0) * amt_f
-                    unreal_str = f"{uv:+,.2f} USD ({up:+.2f}%)"
-                try:
-                    up_col = unreal_str.split("USD")[0].strip()
-                    if up_col.startswith("+"): up_color = "#0ecb81"
-                    elif up_col.startswith("-"): up_color = "#f6465d"
-                    else: up_color = "#eaecef"
-                except Exception:
-                    up_color = "#eaecef"
-                r1, r2, r3, r4, r5, r6, r7 = st.columns([0.18, 0.14, 0.12, 0.15, 0.15, 0.1, 0.16])
-                r1.markdown(f"<b style='color:#fcd535;'>{sym}</b><br><span style='color:#848e9c;font-size:11px;'>{trade.get('Market','Spot')}</span>", unsafe_allow_html=True)
-                r2.markdown(f"E: <b style='color:#3b82f6;'>${entry_f:,.6f}</b><br>L: <b>${live_f:,.6f}</b>", unsafe_allow_html=True)
-                r3.markdown(f"<b style='color:{up_color};'>{unreal_str}</b>", unsafe_allow_html=True)
-                r4.markdown(f"TP: <b style='color:#0ecb81;'>${trade.get('TP','0')}</b><br>SL: <b style='color:#f6465d;'>${trade.get('SL','0')}</b>", unsafe_allow_html=True)
-                r5.write(trade.get("Amount", "$0"))
-                r6.write(str(trade.get("Rules", "—"))[:18])
-                close_clicked = r7.button("✅ Close", key=f"close_manual_{idx}", use_container_width=True,
-                                          help="Live price se close karke PnL ke saath History me shift karega")
-                if close_clicked:
-                    with st.spinner(f"Closing {sym}..."):
-                        ok, msg = manual_close_trade_db(curr_user, idx)
-                        if ok:
-                            st.success(f"Closed — {msg}")
-                        else:
-                            st.error(f"Error: {msg}")
-                    need_ui_rerun_after = True
-                st.markdown("---")
-            if need_ui_rerun_after:
-                st.rerun()
+                cc1, cc2 = st.columns([0.9, 0.1])
+                with cc1:
+                    rules_html = f"<br><span style='color:#848e9c;font-size:12px;'>Rules:</span> <b style='font-size:12px;'>{trade.get('Rules','—')}</b>" if trade.get("Rules") else ""
+                    st.markdown(f"""
+                    <div class='trade-card'>
+                        <div style='display:flex; justify-content:space-between; align-items:center;'>
+                            <span class='sym-title'>{trade['Symbol']} <span style='color:#848e9c;font-size:12px;'>({trade['Market']})</span></span>
+                            <span class='badge-live'>🟢 LIVE</span>
+                        </div>
+                        <div style='margin-top:10px;'>
+                            <span class='kv'><span class='k'>Entry</span><span class='v' style='color:#3b82f6;'>${trade['Entry']}</span></span>
+                            <span class='kv'><span class='k'>Allocated</span><span class='v'>{trade['Amount']}</span></span>
+                            <span class='kv'><span class='k'>Take Profit</span><span class='v' style='color:#0ecb81;'>${trade['TP']}</span></span>
+                            <span class='kv'><span class='k'>Stop Loss</span><span class='v' style='color:#f6465d;'>${trade['SL']}</span></span>
+                        </div>
+                        {rules_html}
+                    </div>
+                    """, unsafe_allow_html=True)
+                with cc2:
+                    if st.button("❌", key=f"del_trade_{idx}", help="Is card ko hatao"):
+                        user_settings["active_trades"].pop(idx)
+                        save_db(db); st.rerun()
         else:
             st.info("No active trades running right now.")
 
@@ -5016,11 +3574,11 @@ else:
                 with cc1:
                     st.markdown(f"""
                     <div class='sig-card'>
-                        <div style='display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center;'>
+                        <div style='display:flex; justify-content:space-between; align-items:center;'>
                             <span class='sym-title'>{sig['symbol']}</span>
                             <span class='{badge}'>{badge_txt}</span>
                         </div>
-                        <div class='kv-row' style='margin-top:10px;'>
+                        <div style='margin-top:10px;'>
                             <span class='kv'><span class='k'>Entry</span><span class='v' style='color:#3b82f6;'>{sig.get('entry',0):,.6f}</span></span>
                             <span class='kv'><span class='k'>Take Profit</span><span class='v' style='color:#0ecb81;'>{sig.get('tp',0):,.6f}</span></span>
                             <span class='kv'><span class='k'>Stop Loss</span><span class='v' style='color:#f6465d;'>{sig.get('sl',0):,.6f}</span></span>
@@ -5060,3 +3618,320 @@ else:
                 st.text(line)
         else:
             st.info("Koi log abhi tak nahi bana.")
+
+# ==========================================
+# BACKGROUND AUTOMATED & EMAIL LOOP
+# ==========================================
+if st.session_state.bot_running:
+    rt = get_runtime(user_settings)
+    save_db(db)
+    daily_lim = int(user_settings["limits"].get("daily_limit", 1))
+    exec_mode_setting = user_settings["strategy"].get("exec_mode", "")
+    is_signal_only = "Signal-Only" in exec_mode_setting or "Signal" in exec_mode_setting
+
+    if (not is_signal_only) and rt["trades_today"] >= daily_lim:
+        add_log(f"⏳ Daily auto-trade limit reached ({rt['trades_today']}/{daily_lim}). Aaj ke liye paused (kal reset).")
+        st.warning(f"⚠️ Daily trade limit {daily_lim} poori ho gayi — aaj {rt['trades_today']} trade ho chuke. Ab kal tak paused.")
+        time.sleep(15); st.rerun()
+
+    try:
+        ex_cfg = user_settings["exchange"]
+        market_m = ex_cfg.get("market", "Spot")
+        ex_config = {'apiKey': dec_secret(ex_cfg.get("key")), 'secret': dec_secret(ex_cfg.get("secret")),
+                     'enableRateLimit': True,
+                     'options': {'defaultType': 'future' if market_m == "Futures (Derivatives)" else 'spot'}}
+        ex = ccxt.binance(ex_config)
+        if ex_cfg.get("demo"):
+            ex.set_sandbox_mode(True)
+            if market_m == "Futures (Derivatives)":
+                ex.urls['api']['fapiPublic'] = 'https://testnet.binancefuture.com/fapi/v1'
+                ex.urls['api']['fapiPrivate'] = 'https://testnet.binancefuture.com/fapi/v1'
+            else:
+                ex.urls['api']['public'] = 'https://demo-api.binance.com/api/v3'
+                ex.urls['api']['private'] = 'https://demo-api.binance.com/api/v3'
+
+        ex.load_markets()
+        flt = user_settings.get("filters", DEFAULT_FILTERS)
+
+        # ---- PERF/STABILITY FIX ----
+        # Pehle har 15 second me Binance ke SAARE (2000+) coins ka poora ticker data
+        # (fetch_tickers) dobara mangwaya jata tha — chhote VPS (1GB RAM) ke liye ye
+        # bahut bhaari kaam hai aur crash/restart ki sabse badi wajah tha (jisse
+        # session/login "khud logout" jaisa lagta tha). Ab ye data sirf har
+        # UNIVERSE_CACHE_TTL second (3 minute) me ek baar refresh hota hai — baaki
+        # waqt session me cache se use hota hai. Strategy/behaviour bilkul wahi
+        # rehta hai, sirf resource-use kam ho jata hai.
+        _now_ts = time.time()
+        _cache_key = (curr_user, int(flt.get("universe_min_volume", 1000000)),
+                      tuple(sorted(e.upper() for e in flt.get("exclude", []))))
+        _cache_fresh = (
+            st.session_state.get("_universe_cache_key") == _cache_key
+            and (_now_ts - st.session_state.get("_universe_cache_ts", 0)) < UNIVERSE_CACHE_TTL
+            and st.session_state.get("_universe_cache")
+        )
+        if _cache_fresh:
+            universe = st.session_state["_universe_cache"]
+            all_tickers = st.session_state.get("_tickers_cache")
+        else:
+            try:
+                all_tickers = ex.fetch_tickers()
+            except Exception:
+                all_tickers = None
+            universe = build_symbol_universe(ex, all_tickers,
+                                             min_volume=int(flt.get("universe_min_volume", 1000000)),
+                                             exclude_bases=flt.get("exclude", []))
+            if not universe:
+                excl = {e.upper() for e in flt.get("exclude", [])}
+                universe = [s for s in ex.symbols
+                            if s.endswith('/USDT') and s.split('/')[0].upper() not in STABLE_OR_FIAT
+                            and s.split('/')[0].upper() not in excl][:40]
+            if not universe:
+                universe = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
+            st.session_state["_universe_cache"] = universe
+            st.session_state["_tickers_cache"] = all_tickers
+            st.session_state["_universe_cache_key"] = _cache_key
+            st.session_state["_universe_cache_ts"] = _now_ts
+
+        available = [c for c in universe if c not in rt["traded_coins_today"]]
+        if not available:
+            if is_signal_only:
+                rt["traded_coins_today"] = []
+                save_db(db)
+                available = universe
+            else:
+                add_log("🔎 Aaj ke available coins khatam. Idling.")
+                time.sleep(15); st.rerun()
+
+        strategy_mode = user_settings["strategy"].get("mode", "manual")
+        chosen_coin = None; c_price = 0.0; matched_rules_str = ""
+
+        if strategy_mode == "manual":
+            manual_cfg = user_settings["strategy"]["manual"]
+            sample_pool = available[:25] if len(available) >= 25 else available
+            candidates = []
+            for coin in sample_pool:
+                try:
+                    passed, rules = evaluate_manual_strategy(ex, coin, manual_cfg)
+                    if passed:
+                        candidates.append((coin, rules))
+                except Exception:
+                    continue
+            if candidates:
+                best = None; best_vol = -1
+                for coin, rules in candidates:
+                    vol = 0.0
+                    if all_tickers and coin in all_tickers:
+                        try: vol = float(all_tickers[coin].get('quoteVolume') or 0)
+                        except Exception: vol = 0.0
+                    else:
+                        try: vol = float(ex.fetch_ticker(coin).get('quoteVolume') or 0)
+                        except Exception: vol = 0.0
+                    if vol > best_vol:
+                        best_vol = vol; best = (coin, rules)
+                chosen_coin, matched_rules_list = best
+                matched_rules_str = ", ".join(matched_rules_list)
+                try:
+                    c_price = float(ex.fetch_ticker(chosen_coin).get('last') or 0.0)
+                except Exception:
+                    c_price = 0.0
+            else:
+                add_log("🔎 Manual scan complete — koi coin saari ticked conditions match nahi kar raha. Idling.")
+        else:
+            add_log("⚠️ AI Prompt mode selected hai par koi AI evaluation connect nahi — is mode me trade nahi banegi.")
+
+        if chosen_coin is None:
+            time.sleep(15); st.rerun()
+
+        # ---- SLOT RESERVE (order se PEHLE) ----
+        ok, reason, db = try_reserve_slot(curr_user, chosen_coin, daily_lim, is_signal_only)
+        user_settings = db["settings"][curr_user]
+        rt = get_runtime(user_settings)
+
+        # ---- EXTRA SAFETY NET ----
+        # Chahe kitni bhi tabs/process ya restart ho jaye, trades_today kabhi bhi
+        # daily_lim se zyada NAHI hona chahiye. Agar phir bhi (kisi wajah se) ho
+        # jaye, is reservation ko turant undo karo — order place hi NAHI hoga, aur
+        # limit hamesha exactly wahi rahegi jo user ne set ki hai (2 -> 2, 50 -> 50).
+        if ok and not is_signal_only and rt["trades_today"] > daily_lim:
+            rt["trades_today"] = daily_lim
+            if chosen_coin in rt["traded_coins_today"]:
+                rt["traded_coins_today"].remove(chosen_coin)
+            save_db(db)
+            add_log(f"🛡️ Safety rollback: {chosen_coin} reservation undo ki gayi (limit {daily_lim} already reached tha).")
+            ok = False
+            reason = "limit reached"
+
+        if not ok:
+            if reason == "limit reached":
+                add_log(f"⏳ Limit reached ({rt['trades_today']}/{daily_lim}) — {chosen_coin} skip. Paused for today.")
+                st.warning(f"⚠️ Daily limit {daily_lim} poori. Ab kal tak paused.")
+            else:
+                add_log(f"↩️ {chosen_coin} skip ({reason}). Agla coin dekhenge.")
+            time.sleep(15); st.rerun()
+
+        if c_price <= 0:
+            try:
+                ohlcv = ex.fetch_ohlcv(chosen_coin, timeframe='1m', limit=1)
+                if ohlcv: c_price = float(ohlcv[0][4])
+            except Exception:
+                c_price = 1.0
+
+        amt_usdt = float(user_settings["limits"]["trade_amount"])
+        try:
+            coin_qty = float(ex.amount_to_precision(chosen_coin, amt_usdt / c_price))
+        except Exception:
+            coin_qty = amt_usdt / c_price
+
+        tp_p = user_settings["strategy"]["tp_pct"]; sl_p = user_settings["strategy"]["sl_pct"]
+        tp_val = c_price * (1 + tp_p / 100); sl_val = c_price * (1 - sl_p / 100)
+
+        current_time_str = datetime.now().strftime("%I:%M:%S %p")
+        full_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp_epoch = datetime.now().timestamp()
+
+        # per-user signals feed (24h se purane -> signal_history)
+        us_feed = user_settings.setdefault("signals_feed", [])
+        us_hist = user_settings.setdefault("signal_history", [])
+        active_signals = []
+        for sig in us_feed:
+            if (timestamp_epoch - sig.get("timestamp_epoch", timestamp_epoch)) >= 86400:
+                if sig not in us_hist:
+                    us_hist.insert(0, sig)
+            else:
+                active_signals.append(sig)
+        user_settings["signals_feed"] = active_signals
+
+        new_signal = {
+            "id": f"{chosen_coin}_{int(timestamp_epoch)}",
+            "time": current_time_str, "full_timestamp": full_ts, "timestamp_epoch": timestamp_epoch,
+            "symbol": chosen_coin,
+            "strategy": "Manual Rule Engine" if strategy_mode == "manual" else "AI Prompt Engine",
+            "rules": matched_rules_str, "entry": c_price, "tp": tp_val, "sl": sl_val,
+            "type": "Signal Only" if is_signal_only else "Executed Trade"
+        }
+        user_settings["signals_feed"].insert(0, new_signal)
+        save_db(db)
+
+        email_cfg = user_settings.get("email", {})
+        if email_cfg.get("enabled"):
+            email_sub = f"🚨 [Apex Trading] {'Signal Generated' if is_signal_only else 'Trade Executed'}: {chosen_coin}"
+            email_body_html = f"""
+            <html><body style="font-family: Arial, sans-serif; background-color: #0b0e11; color: #eaecef; padding: 20px;">
+                <div style="max-width: 600px; margin: auto; background: #181a20; border: 1px solid #2b313a; border-radius: 12px; padding: 25px;">
+                    <h2 style="color: #fcd535; margin-top: 0; text-align: center;">⚡ Apex Automated Alert</h2>
+                    <p style="color: #0ecb81; text-align: center; font-weight: bold;">Status: Strategy conditions successfully met!</p>
+                    <p style="color: #848e9c; text-align:center; font-size:12px;">Matched rules: {matched_rules_str or "N/A"}</p>
+                    <hr style="border: 0; border-top: 1px solid #2b313a; margin: 20px 0;">
+                    <table style="width: 100%; font-size: 14px; color: #eaecef; border-collapse: collapse;">
+                        <tr><td style="padding: 8px 0; color: #848e9c;">Trading Pair:</td><td style="padding: 8px 0; font-weight: bold; color: #fcd535; text-align: right;">{chosen_coin}</td></tr>
+                        <tr><td style="padding: 8px 0; color: #848e9c;">Market Type:</td><td style="padding: 8px 0; font-weight: bold; text-align: right;">{market_m}</td></tr>
+                        <tr><td style="padding: 8px 0; color: #848e9c;">Entry Price:</td><td style="padding: 8px 0; font-weight: bold; color: #3b82f6; text-align: right;">${c_price:,.6f}</td></tr>
+                        <tr><td style="padding: 8px 0; color: #848e9c;">Take Profit (TP):</td><td style="padding: 8px 0; font-weight: bold; color: #0ecb81; text-align: right;">${tp_val:,.6f} (+{tp_p}%)</td></tr>
+                        <tr><td style="padding: 8px 0; color: #848e9c;">Stop Loss (SL):</td><td style="padding: 8px 0; font-weight: bold; color: #f6465d; text-align: right;">${sl_val:,.6f} (-{sl_p}%)</td></tr>
+                        <tr><td style="padding: 8px 0; color: #848e9c;">Allocated Amount:</td><td style="padding: 8px 0; font-weight: bold; text-align: right;">${amt_usdt} USDT</td></tr>
+                    </table>
+                </div></body></html>"""
+            send_email_alert(email_sub, email_body_html, email_cfg)
+
+        # -------- SIGNAL-ONLY --------
+        if is_signal_only:
+            add_log(f"📡 Signal #{rt['signals_today']} generated for {chosen_coin} (rules: {matched_rules_str}).")
+            time.sleep(15); st.rerun()
+
+        # -------- AUTO TRADE --------
+        placed_ok = False
+        if "Automated Trading" in exec_mode_setting:
+            if not (ex_cfg.get("connected") and ex_cfg.get("key")):
+                add_log(f"⚠️ {chosen_coin}: exchange not connected — real order skip, signal recorded. "
+                        f"(Slot consume ho gaya taake limit safe rahe.)")
+            else:
+                try:
+                    formatted_tp_price = float(ex.price_to_precision(chosen_coin, tp_val))
+                    formatted_sl_price = float(ex.price_to_precision(chosen_coin, sl_val))
+                except Exception:
+                    formatted_tp_price = tp_val; formatted_sl_price = sl_val
+
+                if market_m == "Spot":
+                    try:
+                        buy_res = ex.create_market_buy_order(chosen_coin, coin_qty)
+                        placed_ok = True
+                        add_log(f"✅ Spot Market Buy Executed for {chosen_coin} (rules: {matched_rules_str})")
+                    except Exception as buy_err:
+                        add_log(f"❌ Buy Order Error: {str(buy_err)}"); buy_res = None
+                    if buy_res:
+                        time.sleep(1.5)
+                        base_ccy = chosen_coin.split('/')[0]; sell_qty = coin_qty
+                        try:
+                            bal = ex.fetch_balance()
+                            free_amt = float(bal['free'].get(base_ccy, 0) or 0)
+                            if free_amt > 0: sell_qty = free_amt
+                        except Exception: pass
+                        try: sell_qty = float(ex.amount_to_precision(chosen_coin, sell_qty))
+                        except Exception: pass
+                        try: sl_limit_price = float(ex.price_to_precision(chosen_coin, sl_val * 0.997))
+                        except Exception: sl_limit_price = formatted_sl_price
+                        oco_done = False
+                        oco_fn = getattr(ex, 'private_post_order_oco', None)
+                        if oco_fn is not None:
+                            try:
+                                oco_fn({'symbol': chosen_coin.replace('/', ''), 'side': 'SELL',
+                                        'quantity': ex.amount_to_precision(chosen_coin, sell_qty),
+                                        'price': ex.price_to_precision(chosen_coin, formatted_tp_price),
+                                        'stopPrice': ex.price_to_precision(chosen_coin, formatted_sl_price),
+                                        'stopLimitPrice': ex.price_to_precision(chosen_coin, sl_limit_price),
+                                        'stopLimitTimeInForce': 'GTC'})
+                                add_log(f"🛡️ OCO placed — TP ${formatted_tp_price} / SL ${formatted_sl_price}")
+                                oco_done = True
+                            except Exception as oco_err:
+                                add_log(f"⚠️ OCO not available ({str(oco_err)[:70]}), trying separate SL/TP...")
+                        if not oco_done:
+                            try:
+                                ex.create_order(chosen_coin, 'STOP_LOSS_LIMIT', 'sell', sell_qty, sl_limit_price, {'stopPrice': formatted_sl_price})
+                                add_log(f"🛡️ Stop Loss placed at trigger ${formatted_sl_price}")
+                            except Exception:
+                                try:
+                                    ex.create_order(chosen_coin, 'STOP_LOSS', 'sell', sell_qty, None, {'stopPrice': formatted_sl_price})
+                                    add_log(f"🛡️ Stop Loss (Market) placed at trigger ${formatted_sl_price}")
+                                except Exception as sl_fallback_err:
+                                    add_log(f"⚠️ Stop Loss Order Warning: {str(sl_fallback_err)}")
+                            try:
+                                bal2 = ex.fetch_balance()
+                                free2 = float(bal2['free'].get(base_ccy, 0) or 0)
+                                tp_qty = float(ex.amount_to_precision(chosen_coin, free2)) if free2 > 0 else 0
+                                if tp_qty > 0:
+                                    ex.create_limit_sell_order(chosen_coin, tp_qty, formatted_tp_price)
+                                    add_log(f"🎯 Take Profit placed at ${formatted_tp_price}")
+                            except Exception as tp_err:
+                                add_log(f"⚠️ TP Order Warning: {str(tp_err)}")
+                else:
+                    try:
+                        ex.create_market_buy_order(chosen_coin, coin_qty); placed_ok = True
+                        add_log(f"✅ Futures Market Buy executed for {chosen_coin} (rules: {matched_rules_str})")
+                        time.sleep(1)
+                        ex.create_order(chosen_coin, 'TAKE_PROFIT_MARKET', 'sell', coin_qty, None, {'stopPrice': formatted_tp_price, 'reduceOnly': True})
+                        add_log(f"🎯 Futures Take Profit set at ${formatted_tp_price}")
+                        ex.create_order(chosen_coin, 'STOP_MARKET', 'sell', coin_qty, None, {'stopPrice': formatted_sl_price, 'reduceOnly': True})
+                        add_log(f"🛡️ Futures Stop Loss set at ${formatted_sl_price}")
+                    except Exception as fut_err:
+                        add_log(f"⚠️ Futures TP/SL note: {str(fut_err)}")
+
+        user_settings.setdefault("active_trades", []).append({
+            "Symbol": chosen_coin, "Market": market_m,
+            "Entry": f"{c_price:,.6f}", "Amount": f"${amt_usdt}",
+            "TP": f"{tp_val:,.6f}", "SL": f"{sl_val:,.6f}", "Rules": matched_rules_str
+        })
+        save_db(db)
+        add_log(f"📊 Auto trade {rt['trades_today']}/{daily_lim} done for {chosen_coin}"
+                f"{'' if placed_ok else ' (signal only — no live order)'}.")
+        if rt["trades_today"] >= daily_lim:
+            add_log(f"✅ Aaj ki limit ({daily_lim}) complete. Bot ab kal tak naye auto-trade nahi lega.")
+
+    except Exception as e:
+        add_log(f"⚠️ Loop Error: {str(e)}")
+
+    time.sleep(15)
+    st.rerun()
+
+
+
+    # ---------------------------------- oldddddddddddddddddddddd -------------------------------------
